@@ -150,6 +150,17 @@ def test_pylint_001_processing_han_function_rgx_has_no_uncaught_regex_error(
     assert "re.error" not in output.err
 
 
-def test_pylint_004_unprocessable_naming_regex_processing_is_controlled() -> None:
+def test_pylint_004_unprocessable_naming_regex_processing_is_controlled(
+    tmp_path: Path, capsys: CaptureFixture
+) -> None:
     """GUID: PYLINT-004."""
-    assert True
+    config_file = tmp_path / "pylintrc"
+    config_file.write_text("[BASIC]\nclass-rgx=a{999999999999999999999}\n")
+
+    with pytest.raises(SystemExit):
+        Run([str(EMPTY_MODULE), f"--rcfile={config_file}"], exit=False)
+
+    output = capsys.readouterr()
+    assert "Invalid regular expression" in output.err
+    assert "Traceback" not in output.err
+    assert "OverflowError" not in output.err

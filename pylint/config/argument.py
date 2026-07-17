@@ -123,7 +123,7 @@ def _regexp_transformer(value: str) -> Pattern[str]:
     #     controlled configuration-handling path instead of leaking the exception.
     try:
         return re.compile(value)
-    except re.error as exc:
+    except (re.error, OverflowError) as exc:
         # PYLINT-001: Keep regex compilation failures, including ``\p{Han}``,
         # inside argparse's handled validation flow.
         raise argparse.ArgumentTypeError(f"Invalid regular expression: {exc}") from None
@@ -152,7 +152,7 @@ def _regexp_with_han_transformer(value: str) -> Pattern[str]:
         return _regexp_transformer(value)
     try:
         return regex.compile(value)
-    except regex.error as exc:
+    except (regex.error, OverflowError) as exc:
         raise argparse.ArgumentTypeError(f"Invalid regular expression: {exc}") from None
 
 
