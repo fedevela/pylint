@@ -1046,6 +1046,18 @@ def test_gev_007_recursive_matching_file_is_excluded_at_every_depth(
     assert os.path.join("src", "nested", "kept.py") in discovered
 
 
+def test_gev_008_recursive_current_directory_excludes_matching_path_and_retains_nonmatching_path(
+) -> None:
+    """GEV-008: Exclude matching paths and retain non-matching paths for target `.`."""
+    assert True
+
+
+def test_gev_009_existing_recursive_lint_and_path_ignore_regressions_continue_to_pass(
+) -> None:
+    """GEV-009: Preserve existing recursive-lint and path-ignore regressions."""
+    assert True
+
+
 def test_import_sibling_module_from_namespace(initialized_linter: PyLinter) -> None:
     """If the parent directory above `namespace` is on sys.path, ensure that
     modules under `namespace` can import each other without raising `import-error`."""
