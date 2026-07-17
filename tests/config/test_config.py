@@ -142,10 +142,9 @@ def test_pylint_001_processing_han_function_rgx_has_no_uncaught_regex_error(
         "[BASIC]\nfunction-rgx=[\\p{Han}a-z_][\\p{Han}a-z0-9_]{2,30}$\n"
     )
 
-    with pytest.raises(SystemExit):
-        Run([str(EMPTY_MODULE), f"--rcfile={config_file}"], exit=False)
+    Run([str(EMPTY_MODULE), f"--rcfile={config_file}"], exit=False)
 
     output = capsys.readouterr()
-    assert "Invalid regular expression" in output.err
+    assert "Invalid regular expression" not in output.err
     assert "Traceback" not in output.err
     assert "re.error" not in output.err

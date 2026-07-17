@@ -17,6 +17,8 @@ import sys
 from collections.abc import Callable
 from typing import Any, Pattern, Sequence, Tuple, Union
 
+import regex
+
 from pylint import interfaces
 from pylint import utils as pylint_utils
 from pylint.config.callback_actions import _CallbackAction, _ExtendAction
@@ -116,6 +118,23 @@ def _regexp_transformer(value: str) -> Pattern[str]:
         raise argparse.ArgumentTypeError(f"Invalid regular expression: {exc}") from None
 
 
+def _regexp_with_han_transformer(value: str) -> Pattern[str]:
+    r"""Compile a function-name regexp that may contain ``\p{Han}``.
+
+    Other Unicode property escapes intentionally remain unsupported. Patterns
+    without ``\p{Han}`` retain the standard-library regular-expression
+    semantics used by every other naming option.
+    """
+    if r"\p{Han}" not in value or re.search(
+        r"\\[pP]\{", value.replace(r"\p{Han}", "")
+    ):
+        return _regexp_transformer(value)
+    try:
+        return regex.compile(value)
+    except regex.error as exc:
+        raise argparse.ArgumentTypeError(f"Invalid regular expression: {exc}") from None
+
+
 def _regexp_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
     """Transforms a comma separated list of regular expressions."""
     patterns: list[Pattern[str]] = []
@@ -148,6 +167,7 @@ _TYPE_TRANSFORMERS: dict[str, _ArgumentTransformer] = {
     "path": _path_transformer,
     "py_version": _py_version_transformer,
     "regexp": _regexp_transformer,
+    "regexp_with_han": _regexp_with_han_transformer,
     "regexp_csv": _regexp_csv_transfomer,
     "regexp_paths_csv": _regexp_paths_csv_transfomer,
     "string": pylint_utils._unquote,

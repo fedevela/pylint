@@ -545,22 +545,8 @@ class NameChecker(_BasicChecker):
             self.add_message("disallowed-name", node=node, args=name)
             return
 
-        # PYLINT-002 / PYLINT-003 logic obligation for function names:
-        #
-        # configured_pattern = LOOK UP the complete configured ``function-rgx``
-        # MATCH the complete function name against configured_pattern without
-        # extracting, replacing, or separately evaluating its ``\p{Han}`` parts.
-        # IF the complete expression matches:
-        #     CONTINUE without handing off to the ``invalid-name`` diagnostic.
-        #     # PYLINT-002: a conforming Han-character name is accepted.
-        # ELSE:
-        #     HAND OFF the unchanged name, node, type, and confidence to the
-        #     normal naming-diagnostic path.
-        #     EMIT ``invalid-name`` and complete the check without a crash.
-        #     # PYLINT-003: rejection is an ordinary naming mismatch.
-        # Any failure to prepare the configured expression belongs to the
-        # configuration-validation flow; never treat a partial expression as
-        # the function naming rule.
+        # PYLINT-002 / PYLINT-003: Apply the complete compiled naming rule;
+        # mismatches continue through the normal invalid-name path below.
         regexp = self._name_regexps[node_type]
         match = regexp.match(name)
 
