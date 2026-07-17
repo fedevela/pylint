@@ -31,11 +31,14 @@ def test__is_in_ignore_list_re_match() -> None:
 
 
 def _expand_implicit_namespace(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    module_filenames: tuple[str, ...] = ("a.py",),
 ) -> tuple[list[ModuleDescriptionDict], list[ErrorDescriptionDict]]:
     namespace = tmp_path / "a"
     namespace.mkdir()
-    (namespace / "a.py").touch()
+    for module_filename in module_filenames:
+        (namespace / module_filename).touch()
     monkeypatch.chdir(tmp_path)
     return expand_modules(["a"], [], [], [])
 
@@ -78,9 +81,18 @@ def test_pylint7114_003_a_a_py_discovery_assigns_identity_a_a(
 
 
 def test_pylint7114_004_a_a_and_a_b_discovery_keeps_a_b_resolvable_as_a_b(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """PYLINT7114-004: With a/a.py and a/b.py, discovery preserves a/b.py as a.b."""
-    assert True
+    modules, errors = _expand_implicit_namespace(
+        tmp_path, monkeypatch, ("a.py", "b.py")
+    )
+
+    assert not errors
+    assert {(Path(module["path"]).resolve(), module["name"]) for module in modules} == {
+        ((tmp_path / "a" / "a.py").resolve(), "a.a"),
+        ((tmp_path / "a" / "b.py").resolve(), "a.b"),
+    }
 
 
 TEST_DIRECTORY = Path(__file__).parent.parent

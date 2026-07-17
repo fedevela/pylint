@@ -947,7 +947,20 @@ def test_lint_namespace_package_under_dir(initialized_linter: PyLinter) -> None:
 def test_pylint7114_006_lint_e_r_from_a_import_b_then_a_with_a_a_and_a_b_omits_e0611(
 ) -> None:
     """PYLINT7114-006: `pylint -E r a` must resolve b with a/a.py and a/b.py."""
-    assert True
+    reporter = testutils.GenericTestReporter()
+    linter = PyLinter()
+    linter.load_default_plugins()
+    linter.open()
+    linter.set_reporter(reporter)
+    linter._error_mode = True
+    linter._parse_error_mode()
+
+    with tempdir():
+        create_files(["r.py", "a/a.py", "a/b.py"])
+        Path("r.py").write_text("from a import b\n", encoding="utf-8")
+        linter.check(["r", "a"])
+
+    assert not reporter.messages
 
 
 def test_pylint7114_007_a_a_py_diagnostic_reports_path_and_identity_a_a() -> None:

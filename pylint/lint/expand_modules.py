@@ -142,17 +142,8 @@ def expand_modules(
             and os.path.basename(filepath) == "__init__.py"
         )
         if has_init or is_namespace or is_directory:
-            # Pseudocode: sibling-preserving namespace expansion.
-            # [PYLINT7114-004] GIVEN implicit namespace directory `a` containing
-            # both `a/a.py` and `a/b.py`, enumerate every eligible child path
-            # independently. FOR EACH child, derive its module path from the
-            # namespace search root plus that child's relative path. IF the child
-            # is `a/b.py`, emit the paired descriptor (`a/b.py`, `a.b`) even when
-            # the earlier or later sibling is the same-named `a/a.py`; NEVER use
-            # one child's identity to replace, terminate, or filter another child.
-            # IF a child is ignored, skip only that child. IF identity derivation
-            # fails, follow the existing resolution failure path without collapsing
-            # `a.b` into either `a` or `a.a`.
+            # Resolve each namespace child independently so a same-named child
+            # cannot replace a sibling's path/name pair (PYLINT7114-004).
             for subfilepath in modutils.get_module_files(
                 os.path.dirname(filepath), ignore_list, list_all=is_namespace
             ):
