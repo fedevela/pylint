@@ -168,9 +168,18 @@ def test_pylint_004_unprocessable_naming_regex_processing_is_controlled(
 
 def test_pylint_006_unrelated_option_accepted_values_remain_accepted() -> None:
     """GUID: PYLINT-006; preserve accepted unrelated option behavior."""
-    assert True
+    runner = Run([str(EMPTY_MODULE), "--reports=yes"], exit=False)
+
+    assert runner.linter.config.reports is True
 
 
-def test_pylint_006_unrelated_option_rejected_values_keep_diagnostics() -> None:
+def test_pylint_006_unrelated_option_rejected_values_keep_diagnostics(
+    capsys: CaptureFixture,
+) -> None:
     """GUID: PYLINT-006; preserve rejected unrelated option diagnostics."""
-    assert True
+    with pytest.raises(SystemExit):
+        Run([str(EMPTY_MODULE), "--reports=maybe"], exit=False)
+
+    output = capsys.readouterr()
+    assert "Invalid yn value 'maybe', should be in " in output.err
+    assert "Traceback" not in output.err
