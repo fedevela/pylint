@@ -156,43 +156,29 @@ def test_brace_007_escaped_template_renders_each_messages_own_category():
 # baselines in this cluster so all BRACE-008 branches share those same two seams.
 def test_brace_008_escaped_braces_around_field_render_literals_and_value():
     """GUID: BRACE-008 - Render literal braces and the recognized field value."""
-    # Pseudocode contract -- GUID: BRACE-008 / escaped-brace rendering
-    # INPUT: a message template containing doubled opening and closing braces
-    # around at least one recognized placeholder, plus a message supplying its value.
-    # CONFIGURE the text reporter with that template, then emit the message.
-    # WHEN rendering reaches the recognized placeholder, substitute its message value.
-    # WHEN rendering reaches each doubled brace, emit one corresponding literal brace.
-    # OUTPUT: compare the complete emitted line with the expected literal braces and
-    # substituted value; fail if a brace is consumed as a field or the value is absent.
-    assert True
+    assert _render_categories('{{ "Category": "{category}" }}', "C0001") == [
+        '{ "Category": "convention" }'
+    ]
 
 
 def test_brace_008_escaped_literal_braces_do_not_warn_as_unsupported():
     """GUID: BRACE-008 - Do not warn for escaped braces around a known field."""
-    # Pseudocode contract -- GUID: BRACE-008 / escaped-brace warning isolation
-    # INPUT: the escaped-brace template used by the rendering regression case.
-    # CAPTURE warnings while the reporter validates/configures that template.
-    # FOR EACH parsed template component, distinguish literal brace content from fields.
-    # IF the component is escaped literal content, do not enter the unsupported-field
-    # warning path; IF it is the recognized placeholder, retain it for rendering.
-    # OUTPUT: assert that no unsupported-template-argument warning was captured;
-    # fail if any escaped opening brace, closing brace, or enclosed literal is warned on.
-    assert True
+    with warnings.catch_warnings(record=True) as caught_warnings:
+        warnings.simplefilter("always")
+        _configure_template('{{ "Category": "{category}" }}')
+
+    assert caught_warnings == []
 
 
 def test_brace_008_ordinary_field_renders_and_unsupported_field_warns():
     """GUID: BRACE-008 - Retain rendering and genuine unsupported-field warnings."""
-    # Pseudocode contract -- GUID: BRACE-008 / retained baseline branches
-    # INPUT A: an ordinary template containing a recognized placeholder without
-    # surrounding escaped braces, plus a message supplying the placeholder value.
-    # RENDER INPUT A and assert that the emitted output contains the supplied value.
-    # INPUT B: a template containing a genuinely unsupported replacement field.
-    # CAPTURE warnings while configuring INPUT B.
-    # IF the parsed field is unsupported, enter the existing unsupported-template-
-    # argument warning path and identify that field; do not treat it as literal text.
-    # OUTPUT: require both the ordinary rendered value and the existing unsupported-
-    # field warning, so either baseline regression fails this verification locus.
-    assert True
+    assert _render_categories("{category}", "C0001") == ["convention"]
+
+    with pytest.warns(UserWarning, match="argument 'unsupported'") as caught_warnings:
+        reporter = _configure_template("{category} {unsupported}")
+
+    assert len(caught_warnings) == 1
+    assert reporter._fixed_template == "{category} "
 
 
 def test_template_option_default(linter) -> None:
