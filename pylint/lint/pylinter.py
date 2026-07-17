@@ -610,6 +610,24 @@ class PyLinter(
                         skip_subtrees.append(root)
                         yield root
                     else:
+                        # GEV-001..GEV-007 recursive-file filtering pseudocode:
+                        # INPUT := files at this walk depth and the compiled
+                        #          config.ignore_paths loaded by configuration
+                        # FOR EACH file IN files:
+                        #   IF file is not Python: CONTINUE
+                        #   candidate_path := join(root, file)
+                        #   ignored := existing path matcher(candidate_path,
+                        #              config.ignore_paths)
+                        #   # GEV-002/GEV-006: that matcher retains regex
+                        #   # syntax and equivalent slash/backslash forms.
+                        #   IF ignored: CONTINUE discovery without yielding
+                        #   ELSE: YIELD candidate_path for normal lint analysis
+                        # OUTPUT (GEV-003/GEV-004/GEV-005): matching files
+                        # produce no downstream header or diagnostic; each
+                        # nonmatching file remains eligible for normal analysis.
+                        # LOOP (GEV-007): repeat at every os.walk depth.
+                        # FAILURE PATH: invalid regex configuration fails during
+                        # existing configuration loading, before this procedure.
                         yield from (
                             os.path.join(root, file)
                             for file in files
