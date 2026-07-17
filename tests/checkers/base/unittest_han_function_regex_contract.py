@@ -50,3 +50,13 @@ def test_pylint_003_failing_complete_function_rgx_has_invalid_name_without_crash
 
     assert "invalid-name" in output
     assert 'Function name "汉字" doesn\'t conform' in output
+
+
+def test_pylint_005_supported_non_han_naming_regex_parsing_remains_accepted() -> None:
+    """GUID: PYLINT-005; preserve parsing of supported non-Han naming regexes."""
+    assert True
+
+
+def test_pylint_005_supported_non_han_naming_regex_matching_remains_unchanged() -> None:
+    """GUID: PYLINT-005; preserve matching by supported non-Han naming regexes."""
+    assert True

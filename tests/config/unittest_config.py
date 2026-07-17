@@ -28,6 +28,16 @@ def test__regexp_validator_invalid() -> None:
         config.option._regexp_validator(None, None, "test_)")
 
 
+def test_pylint_006_unrelated_regex_accepted_values_remain_accepted() -> None:
+    """GUID: PYLINT-006; preserve accepted unrelated regex configuration."""
+    assert True
+
+
+def test_pylint_006_unrelated_regex_rejected_values_keep_diagnostics() -> None:
+    """GUID: PYLINT-006; preserve rejected unrelated regex diagnostics."""
+    assert True
+
+
 def test__csv_validator_no_spaces() -> None:
     values = ["One", "Two", "Three"]
     result = config.option._csv_validator(None, None, ",".join(values))

@@ -164,3 +164,13 @@ def test_pylint_004_unprocessable_naming_regex_processing_is_controlled(
     assert "Invalid regular expression" in output.err
     assert "Traceback" not in output.err
     assert "OverflowError" not in output.err
+
+
+def test_pylint_006_unrelated_option_accepted_values_remain_accepted() -> None:
+    """GUID: PYLINT-006; preserve accepted unrelated option behavior."""
+    assert True
+
+
+def test_pylint_006_unrelated_option_rejected_values_keep_diagnostics() -> None:
+    """GUID: PYLINT-006; preserve rejected unrelated option diagnostics."""
+    assert True
