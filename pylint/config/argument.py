@@ -48,6 +48,9 @@ _ArgumentTransformer = Callable[[str], _ArgumentTypes]
 
 PYLINT-001 uses this contract for the module-owned boundary between regular
 expression compilation and argparse validation.
+
+PYLINT-004 assigns naming-regex processor failures to this configuration
+boundary; argparse remains the sole consumer of its controlled validation errors.
 """
 
 
@@ -184,6 +187,8 @@ _TYPE_TRANSFORMERS: dict[str, _ArgumentTransformer] = {
     "non_empty_string": _non_empty_string_transformer,
     "path": _path_transformer,
     "py_version": _py_version_transformer,
+    # PYLINT-004 architecture seam: naming-option descriptors depend on these
+    # registry keys, while regex-engine processing remains owned by this module.
     "regexp": _regexp_transformer,
     "regexp_with_han": _regexp_with_han_transformer,
     "regexp_csv": _regexp_csv_transfomer,

@@ -174,6 +174,8 @@ def _create_naming_options() -> Options:
                     "default": None,
                     # PYLINT-002 / PYLINT-003: Unicode Script=Han support is
                     # deliberately confined to the function naming rule.
+                    # PYLINT-004: Naming descriptors select a configuration-owned
+                    # processor; they do not own compilation or error handling.
                     "type": (
                         "regexp_with_han" if name_type == "function" else "regexp"
                     ),
