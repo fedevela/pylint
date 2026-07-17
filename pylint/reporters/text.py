@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import os
-import re
+import string
 import sys
 import warnings
 from dataclasses import asdict, fields
@@ -173,15 +173,6 @@ class TextReporter(BaseReporter):
         """Set the format template to be used and check for unrecognized arguments."""
         template = str(self.linter.config.msg_template or self._template)
 
-        # Pseudocode -- GUID: BRACE-004, BRACE-005
-        # INPUT the selected message template.
-        # SCAN the template according to the formatting grammar:
-        #   CLASSIFY doubled opening/closing braces as literal output braces.
-        #   CLASSIFY single-braced supported names as replacement fields.
-        # PRESERVE every literal segment exactly, including whitespace and quotes.
-        # VALIDATE only replacement fields; escaped literal braces are not fields.
-        # RETAIN the validated template for subsequent per-message rendering.
-
         # Return early if the template is the same as the previous one
         if template == self._template:
             return
@@ -189,31 +180,35 @@ class TextReporter(BaseReporter):
         # Set template to the currently selected template
         self._template = template
 
-        # Check to see if all parameters in the template are attributes of the Message
-        arguments = re.findall(r"\{(.+?)(:.*)?\}", template)
-        for argument in arguments:
-            if argument[0] not in MESSAGE_FIELDS:
+        # Check to see if all parameters in the template are attributes of the Message.
+        # Formatter.parse distinguishes replacement fields from escaped literal braces.
+        rebuilt_template = []
+        for literal_text, field_name, format_spec, conversion in string.Formatter().parse(
+            template
+        ):
+            rebuilt_template.append(
+                literal_text.replace("{", "{{").replace("}", "}}")
+            )
+            if field_name is None:
+                continue
+            if field_name not in MESSAGE_FIELDS:
                 warnings.warn(
-                    f"Don't recognize the argument '{argument[0]}' in the --msg-template. "
+                    f"Don't recognize the argument '{field_name}' in the --msg-template. "
                     "Are you sure it is supported on the current version of pylint?"
                 )
-                template = re.sub(r"\{" + argument[0] + r"(:.*?)?\}", "", template)
-        self._fixed_template = template
+                continue
+            rebuilt_template.append(f"{{{field_name}")
+            if conversion:
+                rebuilt_template.append(f"!{conversion}")
+            if format_spec:
+                rebuilt_template.append(f":{format_spec}")
+            rebuilt_template.append("}")
+        self._fixed_template = "".join(rebuilt_template)
 
     def write_message(self, msg: Message) -> None:
         """Convenience method to write a formatted message with class default
         template.
         """
-        # Pseudocode -- GUID: BRACE-001, BRACE-004, BRACE-005, BRACE-007
-        # INPUT one lint message and the retained validated template.
-        # BUILD a fresh replacement-value mapping from this message only.
-        # NORMALIZE optional position values required by the existing format contract.
-        # FORMAT once with the fresh mapping:
-        #   REPLACE each supported field with this message's corresponding value.
-        #   EMIT each doubled brace as one literal brace.
-        #   COPY all other literal text, whitespace, and quotes unchanged.
-        # WRITE the resulting line, then DISCARD the per-message mapping and result.
-        # FAILURE: PROPAGATE a formatting error; do not emit a partial or cached line.
         self_dict = asdict(msg)
         for key in ("end_line", "end_column"):
             self_dict[key] = self_dict[key] or ""

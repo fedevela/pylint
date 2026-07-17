@@ -11,7 +11,8 @@ import warnings
 from contextlib import redirect_stdout
 from io import StringIO
 from json import dumps
-from typing import TYPE_CHECKING
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -48,24 +49,54 @@ def test_template_option(linter):
     assert output.getvalue() == "************* Module 0123\nC0301:001\nC0301:002\n"
 
 
+def _render_categories(template: str, *message_ids: str) -> list[str]:
+    output = StringIO()
+    reporter = TextReporter(output)
+    reporter.linter = cast(
+        PyLinter, SimpleNamespace(config=SimpleNamespace(msg_template=template))
+    )
+    reporter.on_set_current_module("test_module", "test.py")
+    for message_id in message_ids:
+        reporter.write_message(
+            Message(
+                message_id,
+                "test-symbol",
+                MessageLocationTuple("/test.py", "test.py", "test_module", "", 1, 0),
+                "test message",
+                HIGH,
+            )
+        )
+    return output.getvalue().splitlines()
+
+
 def test_brace_001_escaped_category_template_renders_braces_and_message_category():
     """GUID: BRACE-001 - Render escaped braces around the message category."""
-    assert True
+    assert _render_categories('{{ "Category": "{category}" }}', "C0001") == [
+        '{ "Category": "convention" }'
+    ]
 
 
 def test_brace_004_render_preserves_text_whitespace_quotes_and_escaped_braces():
     """GUID: BRACE-004 - Preserve literals surrounding a rendered placeholder."""
-    assert True
+    template = 'Result:  {{ "Category": "{category}" }}  complete'
+    assert _render_categories(template, "C0001") == [
+        'Result:  { "Category": "convention" }  complete'
+    ]
 
 
 def test_brace_005_supported_placeholder_renders_value_with_or_without_braces():
     """GUID: BRACE-005 - Render supported values in plain and brace templates."""
-    assert True
+    assert _render_categories("{category}", "C0001") == ["convention"]
+    assert _render_categories("{{{category}}}", "C0001") == ["{convention}"]
 
 
 def test_brace_007_escaped_template_renders_each_messages_own_category():
     """GUID: BRACE-007 - Format each message with its own category value."""
-    assert True
+    template = '{{ "Category": "{category}" }}'
+    assert _render_categories(template, "C0001", "W0001") == [
+        '{ "Category": "convention" }',
+        '{ "Category": "warning" }',
+    ]
 
 
 def test_template_option_default(linter) -> None:
