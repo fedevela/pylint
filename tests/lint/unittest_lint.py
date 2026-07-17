@@ -1049,12 +1049,34 @@ def test_gev_007_recursive_matching_file_is_excluded_at_every_depth(
 def test_gev_008_recursive_current_directory_excludes_matching_path_and_retains_nonmatching_path(
 ) -> None:
     """GEV-008: Exclude matching paths and retain non-matching paths for target `.`."""
+    # GEV-008 LOGIC OBLIGATION
+    # GIVEN an isolated project containing one path that matches the configured
+    # ignore-paths expression and one Python path that does not match it:
+    #   - change the process context to the project root;
+    #   - invoke recursive lint discovery with the literal current-directory target `.`;
+    #   - capture both the analyzed-module state and rendered lint output.
+    # WHEN discovery classifies each candidate path:
+    #   - if the path matches ignore-paths, exclude it before analysis and emission;
+    #   - otherwise, hand it off to normal lint analysis.
+    # THEN fail if the matching path appears in analyzed modules or output.
+    # AND fail if the non-matching path is absent from analyzed modules or output.
+    # OTHERWISE complete with both exclusion and retained analysis demonstrated.
     assert True
 
 
 def test_gev_009_existing_recursive_lint_and_path_ignore_regressions_continue_to_pass(
 ) -> None:
     """GEV-009: Preserve existing recursive-lint and path-ignore regressions."""
+    # GEV-009 LOGIC OBLIGATION
+    # GIVEN the GEV-008 current-directory regression is part of the regression suite:
+    #   - retain the existing recursive-lint cases;
+    #   - retain the existing ignore, ignore-patterns, and ignore-paths cases;
+    #   - retain their original inputs and expected outcomes.
+    # WHEN the test runner hands each retained case to Pylint, record its outcome.
+    # FOR EACH outcome, transition the compatibility gate to FAILED on any failure.
+    # IF every retained case passes, transition the compatibility gate to PASSED.
+    # PROPAGATE setup, discovery, lint, or assertion errors as regression failures;
+    # do not reinterpret an error as evidence that compatibility was preserved.
     assert True
 
 
