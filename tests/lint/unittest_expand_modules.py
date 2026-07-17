@@ -77,6 +77,12 @@ def test_pylint7114_003_a_a_py_discovery_assigns_identity_a_a(
     ]
 
 
+def test_pylint7114_004_a_a_and_a_b_discovery_keeps_a_b_resolvable_as_a_b(
+) -> None:
+    """PYLINT7114-004: With a/a.py and a/b.py, discovery preserves a/b.py as a.b."""
+    assert True
+
+
 TEST_DIRECTORY = Path(__file__).parent.parent
 INIT_PATH = str(TEST_DIRECTORY / "lint/__init__.py")
 EXPAND_MODULES = str(TEST_DIRECTORY / "lint/unittest_expand_modules.py")

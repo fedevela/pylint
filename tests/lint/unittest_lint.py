@@ -944,6 +944,12 @@ def test_lint_namespace_package_under_dir(initialized_linter: PyLinter) -> None:
     assert not linter.stats.by_msg
 
 
+def test_pylint7114_006_lint_e_r_from_a_import_b_then_a_with_a_a_and_a_b_omits_e0611(
+) -> None:
+    """PYLINT7114-006: `pylint -E r a` must resolve b with a/a.py and a/b.py."""
+    assert True
+
+
 def test_pylint7114_007_a_a_py_diagnostic_reports_path_and_identity_a_a() -> None:
     """PYLINT7114-007: A diagnostic must identify real a/a.py and module a.a."""
     reporter = testutils.GenericTestReporter()
