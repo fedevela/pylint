@@ -180,6 +180,16 @@ class TextReporter(BaseReporter):
         # Set template to the currently selected template
         self._template = template
 
+        # Architecture contract -- GUID: BRACE-002, BRACE-003, BRACE-006
+        # This validation boundary owns field recognition; it depends directly on
+        # string.Formatter for the literal-versus-field distinction and must not
+        # delegate recognition to rendering. Literal components terminate inside
+        # this boundary without reaching the unsupported-field warning seam
+        # (BRACE-002, BRACE-003). Only parsed replacement-field components may
+        # reach that existing warning seam (BRACE-006). The private
+        # _fixed_template remains the sole integration output to write_message(),
+        # keeping parsing and warnings upstream of per-message value formatting.
+
         # Pseudocode contract -- GUID: BRACE-002, BRACE-003, BRACE-006
         # Verification loci:
         # - test_brace_002_doubled_braces_are_literals_and_category_is_only_field
