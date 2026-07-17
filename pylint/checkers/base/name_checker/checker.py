@@ -268,9 +268,6 @@ class NameChecker(_BasicChecker):
         super().__init__(linter)
         self._name_group: dict[str, str] = {}
         self._bad_names: dict[str, dict[str, list[_BadNamesTuple]]] = {}
-        # PYLINT-002 / PYLINT-003 architecture contract: configuration parsing
-        # supplies complete compiled patterns; this node-type registry is the
-        # sole boundary consumed by the naming-check and diagnostic paths.
         self._name_regexps: dict[str, re.Pattern[str]] = {}
         self._name_hints: dict[str, str] = {}
         self._good_names_rgxs_compiled: list[re.Pattern[str]] = []
@@ -293,15 +290,7 @@ class NameChecker(_BasicChecker):
         ]
 
     def _create_naming_rules(self) -> tuple[dict[str, Pattern[str]], dict[str, str]]:
-        """Select each complete compiled pattern without changing its structure.
-
-        PYLINT-002 / PYLINT-003: This method owns naming-rule selection. Pattern
-        compilation and validation remain configuration concerns, while
-        ``_check_name`` owns match interpretation and diagnostic routing.
-
-        PYLINT-005: non-Han compatibility crosses this integration seam only as a
-        compiled pattern; configuration remains responsible for processor choice.
-        """
+        """Select each complete compiled pattern without changing its structure."""
         regexps: dict[str, Pattern[str]] = {}
         hints: dict[str, str] = {}
 
@@ -532,11 +521,7 @@ class NameChecker(_BasicChecker):
         node: nodes.NodeNG,
         confidence: interfaces.Confidence = interfaces.HIGH,
     ) -> None:
-        """Check for a name using the type's regexp.
-
-        PYLINT-005: matching owns no configuration or regex-engine dependency; it
-        consumes the complete compiled rule supplied by ``_create_naming_rules``.
-        """
+        """Check for a name using the type's regexp."""
 
         def _should_exempt_from_invalid_name(node: nodes.NodeNG) -> bool:
             if node_type == "variable":
@@ -552,14 +537,6 @@ class NameChecker(_BasicChecker):
             self.add_message("disallowed-name", node=node, args=name)
             return
 
-        # PYLINT-005 PSEUDOCODE -- supported non-Han naming-regex matching:
-        # INPUT: the name under review and its previously selected compiled rule.
-        # APPLY the complete rule to the name with the existing match operation.
-        # IF it matches, CONTINUE through the established successful/grouped path.
-        # IF it does not match and no existing exemption applies, HAND OFF to the
-        #     established invalid-name diagnostic path without changing its output.
-        # PYLINT-002 / PYLINT-003: Apply the complete compiled naming rule;
-        # mismatches continue through the normal invalid-name path below.
         regexp = self._name_regexps[node_type]
         match = regexp.match(name)
 

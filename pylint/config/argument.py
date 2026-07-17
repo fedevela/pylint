@@ -44,20 +44,10 @@ _ArgumentTypes = Union[
 """List of possible argument types."""
 
 _ArgumentTransformer = Callable[[str], _ArgumentTypes]
-"""Private configuration-value transformation contract.
 
-PYLINT-001 uses this contract for the module-owned boundary between regular
-expression compilation and argparse validation.
 
-PYLINT-004 assigns naming-regex processor failures to this configuration
-boundary; argparse remains the sole consumer of its controlled validation errors.
-
-PYLINT-005 keeps standard naming-regex compatibility behind this same contract;
-the name checker receives compiled patterns and does not select a regex engine.
-
-PYLINT-006 keeps unrelated option and regex transformation owned by the existing
-type registrations; Han-aware processing is confined to its dedicated type key.
-"""
+class _ConfigurationFileValue(str):
+    """A value originating from an ini or toml configuration file."""
 
 
 def _confidence_transformer(value: str) -> Sequence[str]:
@@ -119,55 +109,22 @@ def _py_version_transformer(value: str) -> tuple[int, ...]:
 
 def _regexp_transformer(value: str) -> Pattern[str]:
     """Compile a regular expression for argparse-managed configuration parsing."""
-    # PYLINT-006 PSEUDOCODE -- unrelated regular-expression compatibility:
-    # INPUT: regular-expression text assigned to any standard regexp option.
-    # TRY to compile the complete text with the existing standard processor.
-    # IF compilation succeeds, RETURN the compiled pattern without rewriting it.
-    # IF compilation fails, PRESERVE the existing controlled argparse diagnostic
-    #     handoff; do not accept the value or route it through Han-aware processing.
-    # PYLINT-004 PSEUDOCODE -- standard naming-regex processing:
-    # INPUT: the configured naming-regex text selected for this processor.
-    # TRY to compile the text with the standard regular-expression processor.
-    # IF compilation succeeds, RETURN the compiled pattern to configuration parsing.
-    # IF the processor reports that the text cannot be compiled,
-    #     TRANSLATE that failure into argparse's configuration-error type,
-    #     OMIT the processor exception context, and HAND OFF to argparse's
-    #     controlled configuration-handling path instead of leaking the exception.
     try:
         return re.compile(value)
     except (re.error, OverflowError) as exc:
-        # PYLINT-001: Keep regex compilation failures, including ``\p{Han}``,
-        # inside argparse's handled validation flow.
         raise argparse.ArgumentTypeError(f"Invalid regular expression: {exc}") from None
 
 
 def _regexp_with_han_transformer(value: str) -> Pattern[str]:
     r"""Compile a function-name regexp that may contain ``\p{Han}``.
 
-    Other Unicode property escapes intentionally remain unsupported. Patterns
-    without ``\p{Han}`` retain the standard-library regular-expression
-    semantics used by every other naming option.
+    Han properties are supported only in configuration files. Command-line
+    values and other Unicode properties retain the standard-library semantics
+    used by every other naming option.
     """
-    # PYLINT-005 PSEUDOCODE -- supported non-Han naming-regex parsing:
-    # INPUT: configured function naming-regex text.
-    # IF the text contains no supported Han property escape,
-    #     HAND OFF the complete, unchanged text to the standard regexp transformer.
-    #     RETURN its compiled pattern on success.
-    #     PROPAGATE its existing controlled configuration diagnostic on failure.
-    #     DO NOT invoke the Han-aware processor or change accepted syntax.
-    # PYLINT-004 PSEUDOCODE -- function naming-regex processor selection:
-    # INPUT: the configured function naming-regex text.
-    # IF the text does not qualify for the supported Han-aware processor,
-    #     HAND OFF to the standard controlled naming-regex procedure above.
-    # OTHERWISE, TRY to compile the text with the Han-aware processor.
-    # IF compilation succeeds, RETURN the compiled pattern to configuration parsing.
-    # IF the Han-aware processor reports that the text cannot be compiled,
-    #     TRANSLATE that failure into argparse's configuration-error type,
-    #     OMIT the processor exception context, and HAND OFF to argparse's
-    #     controlled configuration-handling path instead of leaking the exception.
-    if r"\p{Han}" not in value or re.search(
-        r"\\[pP]\{", value.replace(r"\p{Han}", "")
-    ):
+    if not isinstance(value, _ConfigurationFileValue) or r"\p{Han}" not in value:
+        return _regexp_transformer(value)
+    if re.search(r"\\[pP]\{", value.replace(r"\p{Han}", "")):
         return _regexp_transformer(value)
     try:
         return regex.compile(value)
@@ -177,10 +134,7 @@ def _regexp_with_han_transformer(value: str) -> Pattern[str]:
 
 def _regexp_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
     """Transforms a comma separated list of regular expressions."""
-    patterns: list[Pattern[str]] = []
-    for pattern in _csv_transformer(value):
-        patterns.append(re.compile(pattern))
-    return patterns
+    return [_regexp_transformer(pattern) for pattern in _csv_transformer(value)]
 
 
 def _regexp_paths_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
@@ -197,13 +151,6 @@ def _regexp_paths_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
     return patterns
 
 
-# PYLINT-006 PSEUDOCODE -- unrelated option compatibility:
-# INPUT: an option's existing type key and configured value.
-# SELECT the transformer already registered for that type key.
-# INVOKE that transformer with the value without Han-specific preprocessing.
-# IF transformation succeeds, STORE and expose the same transformed value.
-# IF transformation rejects the value, HAND OFF the same validation failure to
-#     argparse so its established diagnostic and rejection flow remain authoritative.
 _TYPE_TRANSFORMERS: dict[str, _ArgumentTransformer] = {
     "choice": str,
     "csv": _csv_transformer,
@@ -213,10 +160,6 @@ _TYPE_TRANSFORMERS: dict[str, _ArgumentTransformer] = {
     "non_empty_string": _non_empty_string_transformer,
     "path": _path_transformer,
     "py_version": _py_version_transformer,
-    # PYLINT-004 / PYLINT-005 architecture seam: naming-option descriptors depend
-    # on these registry keys, while regex-engine selection remains owned here.
-    # PYLINT-006 boundary: only the dedicated regexp_with_han key may cross into
-    # Han-aware processing; every unrelated key retains its existing transformer.
     "regexp": _regexp_transformer,
     "regexp_with_han": _regexp_with_han_transformer,
     "regexp_csv": _regexp_csv_transfomer,
