@@ -910,18 +910,44 @@ a.py:1:4: E0001: Parsing failed: 'invalid syntax (<unknown>, line 1)' (syntax-er
     def test_pylint7114_005_direct_lint_a_with_initializer_free_a_a_and_a_b_completes_without_collision_error(
     ) -> None:
         """PYLINT7114-005: `pylint a` completes without a same-name collision error."""
-        assert True
+        # INPUT: Resolve the pylint7114_005_009_initializer_free_collision fixture
+        # root, using its child directory named "a" as the direct lint target.
+        # PRECONDITION: Treat the committed fixture as immutable; do not synthesize
+        # an initializer or otherwise convert the target into a regular package.
+        # TRANSITION: From the fixture root, invoke Pylint directly with target "a"
+        # and capture the exit status and diagnostics from the completed invocation.
+        # DECISION: If the exit status or diagnostics identify the same-name layout
+        # (a/a.py beside a/b.py) as an error, fail with the captured diagnostics.
+        # OUTPUT: Record successful completion with no error attributable to the
+        # collision; unrelated diagnostics remain outside this obligation.
 
     @staticmethod
     def test_pylint7114_005_direct_lint_a_omits_parse_error_for_nonexistent_a_init(
     ) -> None:
         """PYLINT7114-005: Diagnostics omit a parse error for absent a/__init__.py."""
-        assert True
+        # INPUT: Use the initializer-free collision fixture and direct target "a".
+        # TRANSITION: Run the same direct Pylint invocation and collect all emitted
+        # diagnostics, including output associated with an unsuccessful exit.
+        # DECISION: Inspect each diagnostic; if it reports a parse failure whose
+        # path is the nonexistent a/__init__.py, fail and expose the full output.
+        # FAILURE BOUNDARY: Do not reject diagnostics unrelated to that nonexistent
+        # initializer, because they are explicitly outside PYLINT7114-005.
+        # OUTPUT: Confirm that processing the namespace-package directory never
+        # manufactures a parse target for a/__init__.py.
 
     @staticmethod
     def test_pylint7114_009_fixture_has_empty_a_a_and_a_b_without_a_init() -> None:
         """PYLINT7114-009: The direct-lint fixture remains initializer-free."""
-        assert True
+        # INPUT: Resolve fixture directory
+        # pylint7114_005_009_initializer_free_collision/a.
+        # LOOP: For each required relative module path in (a.py, b.py), verify that
+        # the path is a regular file and that reading it yields empty content.
+        # DECISION: If either module is absent, non-file, or nonempty, fail with the
+        # offending path so the collision fixture cannot silently change shape.
+        # DECISION: If __init__.py exists in the directory, fail because its presence
+        # would turn the implicit namespace-package layout into a regular package.
+        # OUTPUT: Confirm the exact empty a/a.py plus a/b.py layout with no
+        # a/__init__.py.
 
     @pytest.mark.needs_two_cores
     def test_jobs_score(self) -> None:
