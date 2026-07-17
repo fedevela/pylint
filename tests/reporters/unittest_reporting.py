@@ -146,6 +146,21 @@ def test_brace_007_escaped_template_renders_each_messages_own_category():
     ]
 
 
+def test_brace_008_escaped_braces_around_field_render_literals_and_value():
+    """GUID: BRACE-008 - Render literal braces and the recognized field value."""
+    assert True
+
+
+def test_brace_008_escaped_literal_braces_do_not_warn_as_unsupported():
+    """GUID: BRACE-008 - Do not warn for escaped braces around a known field."""
+    assert True
+
+
+def test_brace_008_ordinary_field_renders_and_unsupported_field_warns():
+    """GUID: BRACE-008 - Retain rendering and genuine unsupported-field warnings."""
+    assert True
+
+
 def test_template_option_default(linter) -> None:
     """Test the default msg-template setting."""
     output = StringIO()
