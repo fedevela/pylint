@@ -143,8 +143,13 @@ group are mutually exclusive.",
                 config_file=self._rcfile,
                 verbose_mode=self.verbose,
             )
-        except _UnrecognizedOptionError:
+        except _UnrecognizedOptionError as exc:
             linter._arg_parser.print_usage(sys.stderr)
+            options = ", ".join(exc.options)
+            print(
+                f"pylint: error: Unrecognized option found: {options}",
+                file=sys.stderr,
+            )
             sys.exit(32)
 
         if linter.config.jobs < 0:
