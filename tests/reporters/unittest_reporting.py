@@ -146,6 +146,14 @@ def test_brace_007_escaped_template_renders_each_messages_own_category():
     ]
 
 
+# Architecture contract -- GUID: BRACE-008
+# Reporter unit tests own this regression because its three obligations cross the
+# existing template lifecycle without requiring a new production interface.
+# Rendering coverage enters through _render_categories(), whose only dependency is
+# the configured TextReporter returned by _configure_template(). Warning coverage
+# terminates at _configure_template(), where on_set_current_module() validates fields;
+# it must not depend on message emission. Keep the ordinary and unsupported-field
+# baselines in this cluster so all BRACE-008 branches share those same two seams.
 def test_brace_008_escaped_braces_around_field_render_literals_and_value():
     """GUID: BRACE-008 - Render literal braces and the recognized field value."""
     # Pseudocode contract -- GUID: BRACE-008 / escaped-brace rendering
