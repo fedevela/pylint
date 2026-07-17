@@ -160,6 +160,12 @@ class TextReporter(BaseReporter):
         super().__init__(output)
         self._modules: set[str] = set()
         self._template = self.line_format
+        # Architecture contract -- GUID: BRACE-001, BRACE-004, BRACE-005, BRACE-007
+        # TextReporter owns the complete message-template lifecycle. Configuration
+        # enters through on_set_current_module(), and this private retained template
+        # is the only handoff from template validation to per-message rendering in
+        # write_message(). Message-derived replacement values must remain local to
+        # that rendering boundary and must never become reporter state.
         self._fixed_template = self.line_format
         """The output format template with any unrecognized arguments removed."""
 
