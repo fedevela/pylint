@@ -64,7 +64,9 @@ def _is_ignored_file(
 # Discovery owns namespace classification, real-path selection, and identity
 # construction. It exports those decisions only through paired descriptor fields
 # (PYLINT7114-001, PYLINT7114-002, PYLINT7114-003, PYLINT7114-004,
-# PYLINT7114-006, PYLINT7114-007).
+# PYLINT7114-006, PYLINT7114-007, PYLINT7114-008). Conventional-package
+# ownership includes selecting the real initializer and enumerating its children;
+# namespace handling must not bypass that explicit-package branch (PYLINT7114-008).
 def expand_modules(
     files_or_modules: Sequence[str],
     ignore_list: list[str],

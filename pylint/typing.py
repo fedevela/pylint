@@ -44,8 +44,9 @@ class FileItem(NamedTuple):
     """
 
     # Discovery-to-check handoff: one item transports one descriptor unchanged;
-    # sibling items remain independent within a combined invocation
-    # (PYLINT7114-004, PYLINT7114-006).
+    # sibling items and a conventional package's real initializer remain
+    # independent lint targets within a combined invocation
+    # (PYLINT7114-004, PYLINT7114-006, PYLINT7114-008).
     name: str
     filepath: str
     modpath: str
@@ -57,7 +58,10 @@ class ModuleDescriptionDict(TypedDict):
     # Discovery-to-lint contract: expand_modules owns resolution; consumers keep
     # path and name paired through AST construction and diagnostic reporting
     # (PYLINT7114-001, PYLINT7114-002, PYLINT7114-003, PYLINT7114-004,
-    # PYLINT7114-006, PYLINT7114-007).
+    # PYLINT7114-006, PYLINT7114-007, PYLINT7114-008).
+    # Conventional packages use this same contract: their real ``__init__.py``
+    # descriptor and child-module descriptors cross the boundary as distinct items
+    # (PYLINT7114-008).
     # A real source path; never a synthesized namespace initializer
     # (PYLINT7114-001, PYLINT7114-003, PYLINT7114-007).
     path: str
