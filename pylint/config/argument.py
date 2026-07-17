@@ -99,6 +99,23 @@ def _py_version_transformer(value: str) -> tuple[int, ...]:
     return version
 
 
+# PYLINT-001 logic obligation: configuration processing must contain regex
+# compilation failures, including the supplied function-rgx with ``\p{Han}``,
+# inside argparse's handled validation flow rather than expose ``re.error``.
+#
+# def _regexp_transformer(value: str) -> Pattern[str]:
+#     TRY:
+#         compiled_pattern = COMPILE value AS a regular expression
+#     CATCH regex_compilation_error:
+#         RAISE an argparse argument-type error FROM no underlying exception
+#         # The parser owns the diagnostic/failure handoff; no traceback or
+#         # re.error crosses the configuration-processing boundary.
+#     RETURN compiled_pattern
+#
+# REGISTER _regexp_transformer for the "regexp" argument type so function-rgx
+# and every other single-regexp option follow the contained success/error flow.
+
+
 def _regexp_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
     """Transforms a comma separated list of regular expressions."""
     patterns: list[Pattern[str]] = []
