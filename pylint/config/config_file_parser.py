@@ -13,6 +13,7 @@ import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from pylint.config.argument import _ConfigurationFileValue
 from pylint.config.utils import _parse_rich_type_value
 
 if sys.version_info >= (3, 11):
@@ -57,7 +58,7 @@ class _ConfigurationFileParser:
                     continue
             for opt, value in parser[section].items():
                 config_content[opt] = value
-                options += [f"--{opt}", value]
+                options += [f"--{opt}", _ConfigurationFileValue(value)]
         return config_content, options
 
     @staticmethod
@@ -90,11 +91,11 @@ class _ConfigurationFileParser:
                 for config, value in values.items():
                     value = _parse_rich_type_value(value)
                     config_content[config] = value
-                    options += [f"--{config}", value]
+                    options += [f"--{config}", _ConfigurationFileValue(value)]
             else:
                 values = _parse_rich_type_value(values)
                 config_content[opt] = values
-                options += [f"--{opt}", values]
+                options += [f"--{opt}", _ConfigurationFileValue(values)]
         return config_content, options
 
     def parse_config_file(

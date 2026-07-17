@@ -290,6 +290,7 @@ class NameChecker(_BasicChecker):
         ]
 
     def _create_naming_rules(self) -> tuple[dict[str, Pattern[str]], dict[str, str]]:
+        """Select each complete compiled pattern without changing its structure."""
         regexps: dict[str, Pattern[str]] = {}
         hints: dict[str, str] = {}
 
@@ -308,6 +309,8 @@ class NameChecker(_BasicChecker):
             custom_regex_setting_name = f"{name_type}_rgx"
             custom_regex = getattr(self.linter.config, custom_regex_setting_name, None)
             if custom_regex is not None:
+                # Preserve the complete configured expression at the integration
+                # seam; character-class syntax is not a separate checker input.
                 regexps[name_type] = custom_regex
 
             if custom_regex is not None:
@@ -533,6 +536,7 @@ class NameChecker(_BasicChecker):
             self.linter.stats.increase_bad_name(node_type, 1)
             self.add_message("disallowed-name", node=node, args=name)
             return
+
         regexp = self._name_regexps[node_type]
         match = regexp.match(name)
 

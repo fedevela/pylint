@@ -126,3 +126,60 @@ def test_argument_separator(capsys: CaptureFixture) -> None:
     Run(["--", str(EMPTY_MODULE)], exit=False)
     output = capsys.readouterr()
     assert not output.err
+
+
+def test_pylint_001_processing_han_function_rgx_has_no_uncaught_regex_error(
+    tmp_path: Path, capsys: CaptureFixture
+) -> None:
+    r"""PYLINT-001: Processing the supplied Han regex emits no uncaught error.
+
+    Given ``function-rgx=[\p{Han}a-z_][\p{Han}a-z0-9_]{2,30}$``, when Pylint
+    processes the configuration, then no uncaught traceback or ``re.error`` is
+    emitted.
+    """
+    config_file = tmp_path / "pylintrc"
+    config_file.write_text(
+        "[BASIC]\nfunction-rgx=[\\p{Han}a-z_][\\p{Han}a-z0-9_]{2,30}$\n"
+    )
+
+    Run([str(EMPTY_MODULE), f"--rcfile={config_file}"], exit=False)
+
+    output = capsys.readouterr()
+    assert "Invalid regular expression" not in output.err
+    assert "Traceback" not in output.err
+    assert "re.error" not in output.err
+
+
+def test_pylint_004_unprocessable_naming_regex_processing_is_controlled(
+    tmp_path: Path, capsys: CaptureFixture
+) -> None:
+    """GUID: PYLINT-004."""
+    config_file = tmp_path / "pylintrc"
+    config_file.write_text("[BASIC]\nclass-rgx=a{999999999999999999999}\n")
+
+    with pytest.raises(SystemExit):
+        Run([str(EMPTY_MODULE), f"--rcfile={config_file}"], exit=False)
+
+    output = capsys.readouterr()
+    assert "Invalid regular expression" in output.err
+    assert "Traceback" not in output.err
+    assert "OverflowError" not in output.err
+
+
+def test_pylint_006_unrelated_option_accepted_values_remain_accepted() -> None:
+    """GUID: PYLINT-006; preserve accepted unrelated option behavior."""
+    runner = Run([str(EMPTY_MODULE), "--reports=yes"], exit=False)
+
+    assert runner.linter.config.reports is True
+
+
+def test_pylint_006_unrelated_option_rejected_values_keep_diagnostics(
+    capsys: CaptureFixture,
+) -> None:
+    """GUID: PYLINT-006; preserve rejected unrelated option diagnostics."""
+    with pytest.raises(SystemExit):
+        Run([str(EMPTY_MODULE), "--reports=maybe"], exit=False)
+
+    output = capsys.readouterr()
+    assert "Invalid yn value 'maybe', should be in " in output.err
+    assert "Traceback" not in output.err

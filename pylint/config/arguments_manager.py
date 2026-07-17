@@ -11,7 +11,6 @@ import configparser
 import copy
 import optparse  # pylint: disable=deprecated-module
 import os
-import re
 import sys
 import textwrap
 import warnings
@@ -733,11 +732,9 @@ class _ArgumentsManager:
                         continue
 
                 # Tomlkit doesn't support regular expressions
-                if isinstance(value, re.Pattern):
+                if hasattr(value, "pattern"):
                     value = value.pattern
-                elif isinstance(value, (list, tuple)) and isinstance(
-                    value[0], re.Pattern
-                ):
+                elif isinstance(value, (list, tuple)) and hasattr(value[0], "pattern"):
                     value = [i.pattern for i in value]
 
                 # Handle tuples that should be strings

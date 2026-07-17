@@ -172,7 +172,9 @@ def _create_naming_options() -> Options:
                 f"{name_type_hyphened}-rgx",
                 {
                     "default": None,
-                    "type": "regexp",
+                    "type": (
+                        "regexp_with_han" if name_type == "function" else "regexp"
+                    ),
                     "metavar": "<regexp>",
                     "help": help_msg,
                 },

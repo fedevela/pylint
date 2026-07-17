@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import argparse
 import re
 import sre_constants
 
@@ -13,6 +14,7 @@ import pytest
 
 from pylint import config
 from pylint.checkers import BaseChecker
+from pylint.config.argument import _regexp_transformer
 from pylint.testutils import CheckerTestCase, set_config
 from pylint.typing import MessageDefinitionTuple
 
@@ -26,6 +28,34 @@ def test__regexp_validator_valid() -> None:
 def test__regexp_validator_invalid() -> None:
     with pytest.raises(sre_constants.error):
         config.option._regexp_validator(None, None, "test_)")
+
+
+def test_pylint_006_unrelated_regex_accepted_values_remain_accepted() -> None:
+    """GUID: PYLINT-006; preserve accepted unrelated regex configuration."""
+    pattern_text = r"test_[a-z]+$"
+
+    argparse_pattern = _regexp_transformer(pattern_text)
+    legacy_pattern = config.option._regexp_validator(None, None, pattern_text)
+
+    for pattern in (argparse_pattern, legacy_pattern):
+        assert isinstance(pattern, re.Pattern)
+        assert pattern.pattern == pattern_text
+        assert pattern.fullmatch("test_name")
+        assert not pattern.fullmatch("other_name")
+
+
+def test_pylint_006_unrelated_regex_rejected_values_keep_diagnostics() -> None:
+    """GUID: PYLINT-006; preserve rejected unrelated regex diagnostics."""
+    invalid_pattern = "test_)"
+
+    with pytest.raises(argparse.ArgumentTypeError) as argparse_error:
+        _regexp_transformer(invalid_pattern)
+    with pytest.raises(sre_constants.error) as legacy_error:
+        config.option._regexp_validator(None, None, invalid_pattern)
+
+    assert str(argparse_error.value).startswith("Invalid regular expression: ")
+    assert "unbalanced parenthesis" in str(argparse_error.value)
+    assert "unbalanced parenthesis" in str(legacy_error.value)
 
 
 def test__csv_validator_no_spaces() -> None:

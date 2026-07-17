@@ -6,7 +6,6 @@
 
 from __future__ import annotations
 
-import re
 import warnings
 from collections.abc import Callable, Sequence
 from pathlib import Path
@@ -150,7 +149,7 @@ def _parse_rich_type_value(value: Any) -> str:
     """Parse rich (toml) types into strings."""
     if isinstance(value, (list, tuple)):
         return ",".join(_parse_rich_type_value(i) for i in value)
-    if isinstance(value, re.Pattern):
+    if hasattr(value, "pattern"):
         return value.pattern
     if isinstance(value, dict):
         return ",".join(f"{k}:{v}" for k, v in value.items())

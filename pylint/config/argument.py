@@ -17,6 +17,8 @@ import sys
 from collections.abc import Callable
 from typing import Any, Pattern, Sequence, Tuple, Union
 
+import regex
+
 from pylint import interfaces
 from pylint import utils as pylint_utils
 from pylint.config.callback_actions import _CallbackAction, _ExtendAction
@@ -40,6 +42,12 @@ _ArgumentTypes = Union[
     Tuple[int, ...],
 ]
 """List of possible argument types."""
+
+_ArgumentTransformer = Callable[[str], _ArgumentTypes]
+
+
+class _ConfigurationFileValue(str):
+    """A value originating from an ini or toml configuration file."""
 
 
 def _confidence_transformer(value: str) -> Sequence[str]:
@@ -99,12 +107,39 @@ def _py_version_transformer(value: str) -> tuple[int, ...]:
     return version
 
 
+def _regexp_transformer(value: str) -> Pattern[str]:
+    """Compile a regular expression for argparse-managed configuration parsing."""
+    try:
+        return re.compile(value)
+    except re.error as exc:
+        raise argparse.ArgumentTypeError(
+            f"Error in provided regular expression: {value} beginning at index "
+            f"{exc.pos}: {exc.msg}"
+        ) from None
+    except OverflowError as exc:
+        raise argparse.ArgumentTypeError(f"Invalid regular expression: {exc}") from None
+
+
+def _regexp_with_han_transformer(value: str) -> Pattern[str]:
+    r"""Compile a function-name regexp that may contain ``\p{Han}``.
+
+    Han properties are supported only in configuration files. Command-line
+    values and other Unicode properties retain the standard-library semantics
+    used by every other naming option.
+    """
+    if not isinstance(value, _ConfigurationFileValue) or r"\p{Han}" not in value:
+        return _regexp_transformer(value)
+    if re.search(r"\\[pP]\{", value.replace(r"\p{Han}", "")):
+        return _regexp_transformer(value)
+    try:
+        return regex.compile(value)
+    except (regex.error, OverflowError) as exc:
+        raise argparse.ArgumentTypeError(f"Invalid regular expression: {exc}") from None
+
+
 def _regexp_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
     """Transforms a comma separated list of regular expressions."""
-    patterns: list[Pattern[str]] = []
-    for pattern in _csv_transformer(value):
-        patterns.append(re.compile(pattern))
-    return patterns
+    return [_regexp_transformer(pattern) for pattern in _csv_transformer(value)]
 
 
 def _regexp_paths_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
@@ -121,7 +156,7 @@ def _regexp_paths_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
     return patterns
 
 
-_TYPE_TRANSFORMERS: dict[str, Callable[[str], _ArgumentTypes]] = {
+_TYPE_TRANSFORMERS: dict[str, _ArgumentTransformer] = {
     "choice": str,
     "csv": _csv_transformer,
     "float": float,
@@ -130,7 +165,8 @@ _TYPE_TRANSFORMERS: dict[str, Callable[[str], _ArgumentTypes]] = {
     "non_empty_string": _non_empty_string_transformer,
     "path": _path_transformer,
     "py_version": _py_version_transformer,
-    "regexp": re.compile,
+    "regexp": _regexp_transformer,
+    "regexp_with_han": _regexp_with_han_transformer,
     "regexp_csv": _regexp_csv_transfomer,
     "regexp_paths_csv": _regexp_paths_csv_transfomer,
     "string": pylint_utils._unquote,

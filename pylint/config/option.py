@@ -148,6 +148,8 @@ def _validate(value, optdict, name=""):
 
 # pylint: disable=no-member
 class Option(optparse.Option):
+    """Deprecated optparse adapter retaining its independent validator boundary."""
+
     TYPES = optparse.Option.TYPES + (
         "regexp",
         "regexp_csv",
