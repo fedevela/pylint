@@ -29,7 +29,7 @@
 
 import re
 import tokenize
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, List, Optional, Pattern
 
 from astroid import nodes
 
@@ -82,6 +82,11 @@ class EncodingChecker(BaseChecker):
     """
 
     __implements__ = (IRawChecker, ITokenChecker)
+
+    # Architecture contract -- GUID: FIXME-001, FIXME-003, FIXME-004
+    # ``open`` owns construction from note configuration; ``process_tokens`` owns
+    # matching comment tokens and translating a match into location and payload.
+    _fixme_pattern: Pattern[str]
 
     # configuration section name
     name = "miscellaneous"
