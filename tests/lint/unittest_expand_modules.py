@@ -12,7 +12,11 @@ import pytest
 from pylint.checkers import BaseChecker
 from pylint.lint.expand_modules import _is_in_ignore_list_re, expand_modules
 from pylint.testutils import CheckerTestCase, set_config
-from pylint.typing import MessageDefinitionTuple
+from pylint.typing import (
+    ErrorDescriptionDict,
+    MessageDefinitionTuple,
+    ModuleDescriptionDict,
+)
 
 
 def test__is_in_ignore_list_re_match() -> None:
@@ -26,19 +30,51 @@ def test__is_in_ignore_list_re_match() -> None:
     assert _is_in_ignore_list_re("src/tests/whatever.xml", patterns)
 
 
-def test_pylint7114_001_namespace_discovery_skips_missing_init() -> None:
+def _expand_implicit_namespace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> tuple[list[ModuleDescriptionDict], list[ErrorDescriptionDict]]:
+    namespace = tmp_path / "a"
+    namespace.mkdir()
+    (namespace / "a.py").touch()
+    monkeypatch.chdir(tmp_path)
+    return expand_modules(["a"], [], [], [])
+
+
+def test_pylint7114_001_namespace_discovery_skips_missing_init(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """PYLINT7114-001: Discovery must not parse a nonexistent a/__init__.py."""
-    assert True
+    modules, errors = _expand_implicit_namespace(tmp_path, monkeypatch)
+
+    assert not errors
+    assert modules
+    assert all(Path(module["path"]).name != "__init__.py" for module in modules)
+    assert all(Path(module["basepath"]).name != "__init__.py" for module in modules)
 
 
-def test_pylint7114_002_namespace_a_discovery_preserves_identity_a() -> None:
+def test_pylint7114_002_namespace_a_discovery_preserves_identity_a(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """PYLINT7114-002: An implicit namespace directory a must remain module a."""
-    assert True
+    modules, errors = _expand_implicit_namespace(tmp_path, monkeypatch)
+
+    assert not errors
+    assert {module["basename"] for module in modules} == {"a"}
+    assert {Path(module["basepath"]).resolve() for module in modules} == {
+        (tmp_path / "a").resolve()
+    }
 
 
-def test_pylint7114_003_a_a_py_discovery_assigns_identity_a_a() -> None:
+def test_pylint7114_003_a_a_py_discovery_assigns_identity_a_a(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """PYLINT7114-003: The real same-named file a/a.py must be module a.a."""
-    assert True
+    modules, errors = _expand_implicit_namespace(tmp_path, monkeypatch)
+
+    assert not errors
+    assert [(Path(module["path"]).resolve(), module["name"]) for module in modules] == [
+        ((tmp_path / "a" / "a.py").resolve(), "a.a")
+    ]
 
 
 TEST_DIRECTORY = Path(__file__).parent.parent

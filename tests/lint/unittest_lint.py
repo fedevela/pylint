@@ -946,4 +946,24 @@ def test_lint_namespace_package_under_dir(initialized_linter: PyLinter) -> None:
 
 def test_pylint7114_007_a_a_py_diagnostic_reports_path_and_identity_a_a() -> None:
     """PYLINT7114-007: A diagnostic must identify real a/a.py and module a.a."""
-    assert True
+    reporter = testutils.GenericTestReporter()
+    linter = PyLinter()
+    linter.load_default_plugins()
+    linter.open()
+    linter.set_reporter(reporter)
+
+    with tempdir():
+        create_files(["a/a.py"])
+        Path("a/a.py").write_text("print('diagnostic')\n", encoding="utf-8")
+        expected_path = Path("a/a.py").resolve()
+
+        linter.check(["a"])
+
+    diagnostic = next(
+        message
+        for message in reporter.messages
+        if message.symbol == "missing-module-docstring"
+    )
+    assert Path(diagnostic.abspath) == expected_path
+    assert diagnostic.path.endswith(os.path.join("a", "a.py"))
+    assert diagnostic.module == "a.a"
