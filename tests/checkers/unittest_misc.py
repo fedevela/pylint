@@ -179,6 +179,12 @@ class TestFixme(CheckerTestCase):
         """Established ``--notes=YES,???`` syntax retains two distinct tags."""
         assert self.checker.config.notes == ["YES", "???"]
 
+    # Architecture verification boundary -- GUID: FIXME-006, FIXME-008.
+    # This checker-test class owns the W0511 contract at the token-processing seam.
+    # Existing tests above remain the regression loci for empty configuration,
+    # partial-word rejection, placement, spacing, and optional message text; the
+    # placeholders below are the requirement-traced seams for consolidating those
+    # cases with the unconfigured-punctuation boundary during implementation.
     # GUID: FIXME-006
     def test_FIXME_006_unconfigured_punctuation_comment_emits_no_w0511(self) -> None:
         """Unconfigured punctuation in a comment does not emit W0511."""
