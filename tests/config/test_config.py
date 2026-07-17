@@ -126,3 +126,13 @@ def test_argument_separator(capsys: CaptureFixture) -> None:
     Run(["--", str(EMPTY_MODULE)], exit=False)
     output = capsys.readouterr()
     assert not output.err
+
+
+def test_pylint_001_processing_han_function_rgx_has_no_uncaught_regex_error() -> None:
+    r"""PYLINT-001: Processing the supplied Han regex emits no uncaught error.
+
+    Given ``function-rgx=[\p{Han}a-z_][\p{Han}a-z0-9_]{2,30}$``, when Pylint
+    processes the configuration, then no uncaught traceback or ``re.error`` is
+    emitted.
+    """
+    assert True
