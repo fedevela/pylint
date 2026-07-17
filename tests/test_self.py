@@ -906,6 +906,15 @@ a.py:1:4: E0001: Parsing failed: 'invalid syntax (<unknown>, line 1)' (syntax-er
             stderr=subprocess.PIPE,
         )
 
+    # PYLINT7114-005 / PYLINT7114-009 architecture boundary:
+    # TestRunTC owns the direct CLI regression and its captured outcome through the
+    # existing private _run_pylint seam. The committed
+    # regrtest_data/pylint7114_005_009_initializer_free_collision fixture owns the
+    # immutable namespace-package topology. These tests consume that fixture from
+    # its root with relative target "a"; fixture setup must not flow back into the
+    # tests or create a/__init__.py. The two PYLINT7114-005 outcome checks share
+    # that invocation boundary, while PYLINT7114-009 guards only fixture structure.
+
     @staticmethod
     def test_pylint7114_005_direct_lint_a_with_initializer_free_a_a_and_a_b_completes_without_collision_error(
     ) -> None:
