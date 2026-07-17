@@ -268,6 +268,9 @@ class NameChecker(_BasicChecker):
         super().__init__(linter)
         self._name_group: dict[str, str] = {}
         self._bad_names: dict[str, dict[str, list[_BadNamesTuple]]] = {}
+        # PYLINT-002 / PYLINT-003 architecture contract: configuration parsing
+        # supplies complete compiled patterns; this node-type registry is the
+        # sole boundary consumed by the naming-check and diagnostic paths.
         self._name_regexps: dict[str, re.Pattern[str]] = {}
         self._name_hints: dict[str, str] = {}
         self._good_names_rgxs_compiled: list[re.Pattern[str]] = []
@@ -290,6 +293,12 @@ class NameChecker(_BasicChecker):
         ]
 
     def _create_naming_rules(self) -> tuple[dict[str, Pattern[str]], dict[str, str]]:
+        """Select each complete compiled pattern without changing its structure.
+
+        PYLINT-002 / PYLINT-003: This method owns naming-rule selection. Pattern
+        compilation and validation remain configuration concerns, while
+        ``_check_name`` owns match interpretation and diagnostic routing.
+        """
         regexps: dict[str, Pattern[str]] = {}
         hints: dict[str, str] = {}
 
@@ -308,6 +317,8 @@ class NameChecker(_BasicChecker):
             custom_regex_setting_name = f"{name_type}_rgx"
             custom_regex = getattr(self.linter.config, custom_regex_setting_name, None)
             if custom_regex is not None:
+                # Preserve the complete configured expression at the integration
+                # seam; character-class syntax is not a separate checker input.
                 regexps[name_type] = custom_regex
 
             if custom_regex is not None:
