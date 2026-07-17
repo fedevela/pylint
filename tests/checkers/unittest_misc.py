@@ -181,25 +181,47 @@ class TestFixme(CheckerTestCase):
 
     # Architecture verification boundary -- GUID: FIXME-006, FIXME-008.
     # This checker-test class owns the W0511 contract at the token-processing seam.
-    # Existing tests above remain the regression loci for empty configuration,
-    # partial-word rejection, placement, spacing, and optional message text; the
-    # placeholders below are the requirement-traced seams for consolidating those
-    # cases with the unconfigured-punctuation boundary during implementation.
+    # Existing tests above remain the regression loci for empty configuration;
+    # the requirement-traced tests below consolidate partial-word rejection,
+    # placement, spacing, optional text, and unconfigured punctuation.
     # GUID: FIXME-006
+    @set_config(notes=["???"])
     def test_FIXME_006_unconfigured_punctuation_comment_emits_no_w0511(self) -> None:
         """Unconfigured punctuation in a comment does not emit W0511."""
-        assert True
+        with self.assertNoMessages():
+            self.checker.process_tokens(_tokenize_str("# !!!"))
 
     # GUID: FIXME-008
+    @set_config(notes=["TODO"])
     def test_FIXME_008_absent_and_partial_tags_keep_established_w0511_outcomes(
         self,
     ) -> None:
         """Absent tags and partial words retain their W0511 regression outcomes."""
-        assert True
+        code = """# FIXME: absent configured tag
+# Todoist is a partial word
+"""
+        with self.assertNoMessages():
+            self.checker.process_tokens(_tokenize_str(code))
 
     # GUID: FIXME-008
+    @set_config(notes=["TODO"])
     def test_FIXME_008_tag_placement_spacing_and_optional_messages_keep_w0511_outcomes(
         self,
     ) -> None:
         """Tag placement, spacing, and optional messages retain their outcomes."""
-        assert True
+        code = """#TODO
+# TODO
+# TODO: optional message
+# A TODO in the middle is not a note
+"""
+        with self.assertAddsMessages(
+            MessageTest(msg_id="fixme", line=1, args="TODO", col_offset=1),
+            MessageTest(msg_id="fixme", line=2, args="TODO", col_offset=1),
+            MessageTest(
+                msg_id="fixme",
+                line=3,
+                args="TODO: optional message",
+                col_offset=1,
+            ),
+        ):
+            self.checker.process_tokens(_tokenize_str(code))
