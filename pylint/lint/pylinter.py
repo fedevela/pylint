@@ -769,6 +769,14 @@ class PyLinter(
 
         The returned generator yield one item for each Python module that should be linted.
         """
+        # PYLINT7114-008 -- conventional-package linting logic obligation:
+        # INPUT: the ordered descriptors produced for a conventional package.
+        # FOR EACH real initializer or package-module descriptor, preserve its
+        # correlated name, path, argument state, and package basename.
+        # IF the existing analysis policy accepts it, hand off one FileItem so
+        # downstream checking lints that real source under its discovered identity;
+        # ELSE omit it under the existing policy. Expansion failures remain handled
+        # by _expand_files and do not become synthetic lint targets.
         for descr in self._expand_files(files_or_modules):
             # Discovery/lint integration seam: preserve the descriptor's correlated
             # real path and module identity in one FileItem. Resolution remains owned

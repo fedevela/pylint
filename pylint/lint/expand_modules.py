@@ -86,6 +86,16 @@ def expand_modules(
             continue
         module_path = get_python_path(something)
         additional_search_path = [".", module_path] + path
+        # PYLINT7114-008 -- conventional-package discovery logic obligation:
+        # INPUT: a requested directory and its real ``__init__.py`` marker.
+        # IF the marker exists, classify the request as an explicit package;
+        # derive its established module name and select the marker as ``filepath``.
+        # AFTER metadata lookup, append that initializer descriptor when the
+        # package is not a namespace, then enumerate the package directory.
+        # FOR EACH non-ignored child distinct from the initializer, derive the
+        # child's module identity and append its descriptor without replacing
+        # the initializer. Preserve the existing ImportError/SyntaxError paths:
+        # fall back where already defined, or record the fatal error and continue.
         if os.path.isfile(something) or os.path.exists(
             os.path.join(something, "__init__.py")
         ):
