@@ -180,8 +180,26 @@ class TextReporter(BaseReporter):
         # Set template to the currently selected template
         self._template = template
 
-        # Check to see if all parameters in the template are attributes of the Message.
-        # Formatter.parse distinguishes replacement fields from escaped literal braces.
+        # Pseudocode contract -- GUID: BRACE-002, BRACE-003, BRACE-006
+        # Verification loci:
+        # - test_brace_002_doubled_braces_are_literals_and_category_is_only_field
+        # - test_brace_003_valid_escaped_content_emits_no_unsupported_argument_warning
+        # - test_brace_006_unsupported_replacement_field_emits_existing_warning
+        # - test_brace_003_brace_006_mixed_template_reports_only_unsupported_field
+        # INPUT: the selected message template and the recognized MESSAGE_FIELDS.
+        # PARSE the template into ordered literal and replacement-field components,
+        # treating doubled opening or closing braces as literal text (BRACE-002).
+        # FOR EACH component, preserve its literal text in the rebuilt template.
+        # IF the component has no replacement field, emit no argument warning;
+        # escaped literal-brace content follows this branch (BRACE-003).
+        # ELSE IF the replacement field is recognized, preserve the field together
+        # with its conversion and format specification for later rendering.
+        # ELSE warn through the existing unsupported-template-argument path and omit
+        # that unsupported replacement field from the rebuilt template (BRACE-006).
+        # CONTINUE after either branch so a mixed template ignores escaped content
+        # while independently warning for every genuine unsupported field.
+        # OUTPUT: an ordered, renderable template containing literal text and only
+        # recognized replacement fields; parser failures retain existing behavior.
         rebuilt_template = []
         for literal_text, field_name, format_spec, conversion in string.Formatter().parse(
             template
