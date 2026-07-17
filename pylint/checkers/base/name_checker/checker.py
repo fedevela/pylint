@@ -298,6 +298,9 @@ class NameChecker(_BasicChecker):
         PYLINT-002 / PYLINT-003: This method owns naming-rule selection. Pattern
         compilation and validation remain configuration concerns, while
         ``_check_name`` owns match interpretation and diagnostic routing.
+
+        PYLINT-005: non-Han compatibility crosses this integration seam only as a
+        compiled pattern; configuration remains responsible for processor choice.
         """
         regexps: dict[str, Pattern[str]] = {}
         hints: dict[str, str] = {}
@@ -529,7 +532,11 @@ class NameChecker(_BasicChecker):
         node: nodes.NodeNG,
         confidence: interfaces.Confidence = interfaces.HIGH,
     ) -> None:
-        """Check for a name using the type's regexp."""
+        """Check for a name using the type's regexp.
+
+        PYLINT-005: matching owns no configuration or regex-engine dependency; it
+        consumes the complete compiled rule supplied by ``_create_naming_rules``.
+        """
 
         def _should_exempt_from_invalid_name(node: nodes.NodeNG) -> bool:
             if node_type == "variable":

@@ -111,6 +111,9 @@ def _py_version_validator(_, name, value):
     return value
 
 
+# PYLINT-006 legacy compatibility boundary: deprecated optparse callers continue
+# to depend on this registry and its module-owned validators. The argparse Han
+# integration in ``argument.py`` must not become a dependency of this path.
 VALIDATORS = {
     "string": utils._unquote,
     "int": int,
@@ -160,6 +163,13 @@ def _validate(value, optdict, name=""):
 
 # pylint: disable=no-member
 class Option(optparse.Option):
+    """Deprecated optparse adapter retaining its independent validator boundary.
+
+    PYLINT-006: ``TYPE_CHECKER`` remains wired to the legacy validators above, so
+    unrelated accepted values, rejection rules, and diagnostics do not depend on
+    the argparse naming-regex integration.
+    """
+
     TYPES = optparse.Option.TYPES + (
         "regexp",
         "regexp_csv",

@@ -51,6 +51,12 @@ expression compilation and argparse validation.
 
 PYLINT-004 assigns naming-regex processor failures to this configuration
 boundary; argparse remains the sole consumer of its controlled validation errors.
+
+PYLINT-005 keeps standard naming-regex compatibility behind this same contract;
+the name checker receives compiled patterns and does not select a regex engine.
+
+PYLINT-006 keeps unrelated option and regex transformation owned by the existing
+type registrations; Han-aware processing is confined to its dedicated type key.
 """
 
 
@@ -207,8 +213,10 @@ _TYPE_TRANSFORMERS: dict[str, _ArgumentTransformer] = {
     "non_empty_string": _non_empty_string_transformer,
     "path": _path_transformer,
     "py_version": _py_version_transformer,
-    # PYLINT-004 architecture seam: naming-option descriptors depend on these
-    # registry keys, while regex-engine processing remains owned by this module.
+    # PYLINT-004 / PYLINT-005 architecture seam: naming-option descriptors depend
+    # on these registry keys, while regex-engine selection remains owned here.
+    # PYLINT-006 boundary: only the dedicated regexp_with_han key may cross into
+    # Han-aware processing; every unrelated key retains its existing transformer.
     "regexp": _regexp_transformer,
     "regexp_with_han": _regexp_with_han_transformer,
     "regexp_csv": _regexp_csv_transfomer,
