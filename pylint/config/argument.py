@@ -110,6 +110,14 @@ def _py_version_transformer(value: str) -> tuple[int, ...]:
 
 def _regexp_transformer(value: str) -> Pattern[str]:
     """Compile a regular expression for argparse-managed configuration parsing."""
+    # PYLINT-004 PSEUDOCODE -- standard naming-regex processing:
+    # INPUT: the configured naming-regex text selected for this processor.
+    # TRY to compile the text with the standard regular-expression processor.
+    # IF compilation succeeds, RETURN the compiled pattern to configuration parsing.
+    # IF the processor reports that the text cannot be compiled,
+    #     TRANSLATE that failure into argparse's configuration-error type,
+    #     OMIT the processor exception context, and HAND OFF to argparse's
+    #     controlled configuration-handling path instead of leaking the exception.
     try:
         return re.compile(value)
     except re.error as exc:
@@ -125,6 +133,16 @@ def _regexp_with_han_transformer(value: str) -> Pattern[str]:
     without ``\p{Han}`` retain the standard-library regular-expression
     semantics used by every other naming option.
     """
+    # PYLINT-004 PSEUDOCODE -- function naming-regex processor selection:
+    # INPUT: the configured function naming-regex text.
+    # IF the text does not qualify for the supported Han-aware processor,
+    #     HAND OFF to the standard controlled naming-regex procedure above.
+    # OTHERWISE, TRY to compile the text with the Han-aware processor.
+    # IF compilation succeeds, RETURN the compiled pattern to configuration parsing.
+    # IF the Han-aware processor reports that the text cannot be compiled,
+    #     TRANSLATE that failure into argparse's configuration-error type,
+    #     OMIT the processor exception context, and HAND OFF to argparse's
+    #     controlled configuration-handling path instead of leaking the exception.
     if r"\p{Han}" not in value or re.search(
         r"\\[pP]\{", value.replace(r"\p{Han}", "")
     ):
