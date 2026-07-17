@@ -152,16 +152,29 @@ class TestFixme(CheckerTestCase):
             self.checker.process_tokens(_tokenize_str("# ???: no"))
 
     # GUID: FIXME-002
+    @set_config(notes="YES,???")
     def test_FIXME_002_mixed_YES_and_punctuation_each_emit_one_w0511(self) -> None:
         """Default configuration plus ``YES,???`` emits one W0511 per line."""
-        assert True
+        code = """# YES: yes
+# ???: no
+"""
+        with self.assertAddsMessages(
+            MessageTest(msg_id="fixme", line=1, args="YES: yes", col_offset=1),
+            MessageTest(msg_id="fixme", line=2, args="???: no", col_offset=1),
+        ):
+            self.checker.process_tokens(_tokenize_str(code))
 
     # GUID: FIXME-005
+    @set_config(notes="YES,???")
     def test_FIXME_005_YES_w0511_unchanged_alongside_punctuation(self) -> None:
         """A word-character tag keeps established W0511 behavior beside ``???``."""
-        assert True
+        with self.assertAddsMessages(
+            MessageTest(msg_id="fixme", line=1, args="YES: yes", col_offset=1)
+        ):
+            self.checker.process_tokens(_tokenize_str("# YES: yes"))
 
     # GUID: FIXME-007
+    @set_config(notes="YES,???")
     def test_FIXME_007_comma_delimited_notes_remain_distinct_tags(self) -> None:
         """Established ``--notes=YES,???`` syntax retains two distinct tags."""
-        assert True
+        assert self.checker.config.notes == ["YES", "???"]
