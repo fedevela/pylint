@@ -119,6 +119,13 @@ class EncodingChecker(BaseChecker):
     def open(self):
         super().open()
 
+        # PSEUDOCODE -- GUID: FIXME-001
+        # INPUT configured literal note tags and the optional note regular expression.
+        # FOR EACH literal tag, escape its punctuation before adding it to the alternation.
+        # TERMINATE a tag match only when the next character is a colon, whitespace, or
+        # end-of-comment; do not require a word boundary after punctuation-only tags.
+        # COMBINE the literal-tag alternatives with notes-rgx when it is configured.
+        # COMPILE the resulting case-insensitive comment pattern for token processing.
         notes = "|".join(re.escape(note) for note in self.config.notes)
         if self.config.notes_rgx:
             regex_string = rf"#\s*({notes}|{self.config.notes_rgx})\b"
@@ -188,6 +195,13 @@ class EncodingChecker(BaseChecker):
                     continue
 
             # emit warnings if necessary
+            # PSEUDOCODE -- GUID: FIXME-001, FIXME-003, FIXME-004
+            # SEARCH the normalized comment with the compiled configured-note pattern.
+            # IF no configured tag matches, leave the comment without a W0511 finding.
+            # IF a tag matches, transition the comment to one W0511 finding:
+            #   - locate it at the token's source line and first post-# column;
+            #   - pass the complete trimmed comment text as the diagnostic argument so
+            #     the matched tag and associated punctuation/text remain unchanged.
             match = self._fixme_pattern.search("#" + comment_text.lower())
             if match:
                 self.add_message(
