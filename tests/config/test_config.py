@@ -128,11 +128,24 @@ def test_argument_separator(capsys: CaptureFixture) -> None:
     assert not output.err
 
 
-def test_pylint_001_processing_han_function_rgx_has_no_uncaught_regex_error() -> None:
+def test_pylint_001_processing_han_function_rgx_has_no_uncaught_regex_error(
+    tmp_path: Path, capsys: CaptureFixture
+) -> None:
     r"""PYLINT-001: Processing the supplied Han regex emits no uncaught error.
 
     Given ``function-rgx=[\p{Han}a-z_][\p{Han}a-z0-9_]{2,30}$``, when Pylint
     processes the configuration, then no uncaught traceback or ``re.error`` is
     emitted.
     """
-    assert True
+    config_file = tmp_path / "pylintrc"
+    config_file.write_text(
+        "[BASIC]\nfunction-rgx=[\\p{Han}a-z_][\\p{Han}a-z0-9_]{2,30}$\n"
+    )
+
+    with pytest.raises(SystemExit):
+        Run([str(EMPTY_MODULE), f"--rcfile={config_file}"], exit=False)
+
+    output = capsys.readouterr()
+    assert "Invalid regular expression" in output.err
+    assert "Traceback" not in output.err
+    assert "re.error" not in output.err

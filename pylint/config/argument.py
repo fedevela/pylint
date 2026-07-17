@@ -106,21 +106,14 @@ def _py_version_transformer(value: str) -> tuple[int, ...]:
     return version
 
 
-# PYLINT-001 logic obligation: configuration processing must contain regex
-# compilation failures, including the supplied function-rgx with ``\p{Han}``,
-# inside argparse's handled validation flow rather than expose ``re.error``.
-#
-# def _regexp_transformer(value: str) -> Pattern[str]:
-#     TRY:
-#         compiled_pattern = COMPILE value AS a regular expression
-#     CATCH regex_compilation_error:
-#         RAISE an argparse argument-type error FROM no underlying exception
-#         # The parser owns the diagnostic/failure handoff; no traceback or
-#         # re.error crosses the configuration-processing boundary.
-#     RETURN compiled_pattern
-#
-# REGISTER _regexp_transformer for the "regexp" argument type so function-rgx
-# and every other single-regexp option follow the contained success/error flow.
+def _regexp_transformer(value: str) -> Pattern[str]:
+    """Compile a regular expression for argparse-managed configuration parsing."""
+    try:
+        return re.compile(value)
+    except re.error as exc:
+        # PYLINT-001: Keep regex compilation failures, including ``\p{Han}``,
+        # inside argparse's handled validation flow.
+        raise argparse.ArgumentTypeError(f"Invalid regular expression: {exc}") from None
 
 
 def _regexp_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
@@ -154,11 +147,7 @@ _TYPE_TRANSFORMERS: dict[str, _ArgumentTransformer] = {
     "non_empty_string": _non_empty_string_transformer,
     "path": _path_transformer,
     "py_version": _py_version_transformer,
-    # PYLINT-001 integration seam: the single-regexp entry is owned here and
-    # must target a private adapter conforming to _ArgumentTransformer. Checker
-    # option declarations depend only on the "regexp" key; the adapter alone
-    # may depend on re.compile and argparse's handled validation-error contract.
-    "regexp": re.compile,
+    "regexp": _regexp_transformer,
     "regexp_csv": _regexp_csv_transfomer,
     "regexp_paths_csv": _regexp_paths_csv_transfomer,
     "string": pylint_utils._unquote,
