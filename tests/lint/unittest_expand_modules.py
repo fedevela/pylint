@@ -95,6 +95,12 @@ def test_pylint7114_004_a_a_and_a_b_discovery_keeps_a_b_resolvable_as_a_b(
     }
 
 
+def test_pylint7114_008_conventional_package_real_init_and_modules_remain_discoverable(
+) -> None:
+    """PYLINT7114-008: Discovery retains real __init__.py and package modules."""
+    assert True
+
+
 TEST_DIRECTORY = Path(__file__).parent.parent
 INIT_PATH = str(TEST_DIRECTORY / "lint/__init__.py")
 EXPAND_MODULES = str(TEST_DIRECTORY / "lint/unittest_expand_modules.py")

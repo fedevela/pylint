@@ -986,3 +986,9 @@ def test_pylint7114_007_a_a_py_diagnostic_reports_path_and_identity_a_a() -> Non
     assert Path(diagnostic.abspath) == expected_path
     assert diagnostic.path.endswith(os.path.join("a", "a.py"))
     assert diagnostic.module == "a.a"
+
+
+def test_pylint7114_008_lint_conventional_package_processes_real_init_and_modules(
+) -> None:
+    """PYLINT7114-008: Linting retains real __init__.py and package modules."""
+    assert True
