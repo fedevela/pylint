@@ -120,3 +120,108 @@ class TestFixme(CheckerTestCase):
         """
         with self.assertNoMessages():
             self.checker.process_tokens(_tokenize_str(code))
+
+    # GUID: FIXME-001
+    @set_config(notes=["???"])
+    def test_FIXME_001_configured_punctuation_only_tag_emits_w0511(self) -> None:
+        """A matching configured punctuation-only note tag emits W0511."""
+        with self.assertAddsMessages(
+            MessageTest(msg_id="fixme", line=1, args="???", col_offset=1)
+        ):
+            self.checker.process_tokens(_tokenize_str("# ???"))
+
+    # GUID: FIXME-003
+    @set_config(notes=["???"])
+    def test_FIXME_003_punctuation_only_tag_w0511_has_comment_location(self) -> None:
+        """The W0511 finding identifies the matching comment's source location."""
+        code = """value = 1
+    # ???: located
+"""
+        with self.assertAddsMessages(
+            MessageTest(msg_id="fixme", line=2, args="???: located", col_offset=5)
+        ):
+            self.checker.process_tokens(_tokenize_str(code))
+
+    # GUID: FIXME-004
+    @set_config(notes=["???"])
+    def test_FIXME_004_punctuation_only_tag_w0511_preserves_tag_and_text(self) -> None:
+        """The W0511 finding preserves ``???`` and ``???: no`` punctuation."""
+        with self.assertAddsMessages(
+            MessageTest(msg_id="fixme", line=1, args="???: no", col_offset=1)
+        ):
+            self.checker.process_tokens(_tokenize_str("# ???: no"))
+
+    # GUID: FIXME-002
+    @set_config(notes="YES,???")
+    def test_FIXME_002_mixed_YES_and_punctuation_each_emit_one_w0511(self) -> None:
+        """Default configuration plus ``YES,???`` emits one W0511 per line."""
+        code = """# YES: yes
+# ???: no
+"""
+        with self.assertAddsMessages(
+            MessageTest(msg_id="fixme", line=1, args="YES: yes", col_offset=1),
+            MessageTest(msg_id="fixme", line=2, args="???: no", col_offset=1),
+        ):
+            self.checker.process_tokens(_tokenize_str(code))
+
+    # GUID: FIXME-005
+    @set_config(notes="YES,???")
+    def test_FIXME_005_YES_w0511_unchanged_alongside_punctuation(self) -> None:
+        """A word-character tag keeps established W0511 behavior beside ``???``."""
+        with self.assertAddsMessages(
+            MessageTest(msg_id="fixme", line=1, args="YES: yes", col_offset=1)
+        ):
+            self.checker.process_tokens(_tokenize_str("# YES: yes"))
+
+    # GUID: FIXME-007
+    @set_config(notes="YES,???")
+    def test_FIXME_007_comma_delimited_notes_remain_distinct_tags(self) -> None:
+        """Established ``--notes=YES,???`` syntax retains two distinct tags."""
+        assert self.checker.config.notes == ["YES", "???"]
+
+    # Architecture verification boundary -- GUID: FIXME-006, FIXME-008.
+    # This checker-test class owns the W0511 contract at the token-processing seam.
+    # Existing tests above remain the regression loci for empty configuration;
+    # the requirement-traced tests below consolidate partial-word rejection,
+    # placement, spacing, optional text, and unconfigured punctuation.
+    # GUID: FIXME-006
+    @set_config(notes=["???"])
+    def test_FIXME_006_unconfigured_punctuation_comment_emits_no_w0511(self) -> None:
+        """Unconfigured punctuation in a comment does not emit W0511."""
+        with self.assertNoMessages():
+            self.checker.process_tokens(_tokenize_str("# !!!"))
+
+    # GUID: FIXME-008
+    @set_config(notes=["TODO"])
+    def test_FIXME_008_absent_and_partial_tags_keep_established_w0511_outcomes(
+        self,
+    ) -> None:
+        """Absent tags and partial words retain their W0511 regression outcomes."""
+        code = """# FIXME: absent configured tag
+# Todoist is a partial word
+"""
+        with self.assertNoMessages():
+            self.checker.process_tokens(_tokenize_str(code))
+
+    # GUID: FIXME-008
+    @set_config(notes=["TODO"])
+    def test_FIXME_008_tag_placement_spacing_and_optional_messages_keep_w0511_outcomes(
+        self,
+    ) -> None:
+        """Tag placement, spacing, and optional messages retain their outcomes."""
+        code = """#TODO
+# TODO
+# TODO: optional message
+# A TODO in the middle is not a note
+"""
+        with self.assertAddsMessages(
+            MessageTest(msg_id="fixme", line=1, args="TODO", col_offset=1),
+            MessageTest(msg_id="fixme", line=2, args="TODO", col_offset=1),
+            MessageTest(
+                msg_id="fixme",
+                line=3,
+                args="TODO: optional message",
+                col_offset=1,
+            ),
+        ):
+            self.checker.process_tokens(_tokenize_str(code))
