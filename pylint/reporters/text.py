@@ -11,7 +11,7 @@
 from __future__ import annotations
 
 import os
-import re
+import string
 import sys
 import warnings
 from dataclasses import asdict, fields
@@ -160,6 +160,12 @@ class TextReporter(BaseReporter):
         super().__init__(output)
         self._modules: set[str] = set()
         self._template = self.line_format
+        # Architecture contract -- GUID: BRACE-001, BRACE-004, BRACE-005, BRACE-007
+        # TextReporter owns the complete message-template lifecycle. Configuration
+        # enters through on_set_current_module(), and this private retained template
+        # is the only handoff from template validation to per-message rendering in
+        # write_message(). Message-derived replacement values must remain local to
+        # that rendering boundary and must never become reporter state.
         self._fixed_template = self.line_format
         """The output format template with any unrecognized arguments removed."""
 
@@ -174,16 +180,58 @@ class TextReporter(BaseReporter):
         # Set template to the currently selected template
         self._template = template
 
-        # Check to see if all parameters in the template are attributes of the Message
-        arguments = re.findall(r"\{(.+?)(:.*)?\}", template)
-        for argument in arguments:
-            if argument[0] not in MESSAGE_FIELDS:
+        # Architecture contract -- GUID: BRACE-002, BRACE-003, BRACE-006
+        # This validation boundary owns field recognition; it depends directly on
+        # string.Formatter for the literal-versus-field distinction and must not
+        # delegate recognition to rendering. Literal components terminate inside
+        # this boundary without reaching the unsupported-field warning seam
+        # (BRACE-002, BRACE-003). Only parsed replacement-field components may
+        # reach that existing warning seam (BRACE-006). The private
+        # _fixed_template remains the sole integration output to write_message(),
+        # keeping parsing and warnings upstream of per-message value formatting.
+
+        # Pseudocode contract -- GUID: BRACE-002, BRACE-003, BRACE-006
+        # Verification loci:
+        # - test_brace_002_doubled_braces_are_literals_and_category_is_only_field
+        # - test_brace_003_valid_escaped_content_emits_no_unsupported_argument_warning
+        # - test_brace_006_unsupported_replacement_field_emits_existing_warning
+        # - test_brace_003_brace_006_mixed_template_reports_only_unsupported_field
+        # INPUT: the selected message template and the recognized MESSAGE_FIELDS.
+        # PARSE the template into ordered literal and replacement-field components,
+        # treating doubled opening or closing braces as literal text (BRACE-002).
+        # FOR EACH component, preserve its literal text in the rebuilt template.
+        # IF the component has no replacement field, emit no argument warning;
+        # escaped literal-brace content follows this branch (BRACE-003).
+        # ELSE IF the replacement field is recognized, preserve the field together
+        # with its conversion and format specification for later rendering.
+        # ELSE warn through the existing unsupported-template-argument path and omit
+        # that unsupported replacement field from the rebuilt template (BRACE-006).
+        # CONTINUE after either branch so a mixed template ignores escaped content
+        # while independently warning for every genuine unsupported field.
+        # OUTPUT: an ordered, renderable template containing literal text and only
+        # recognized replacement fields; parser failures retain existing behavior.
+        rebuilt_template = []
+        for literal_text, field_name, format_spec, conversion in string.Formatter().parse(
+            template
+        ):
+            rebuilt_template.append(
+                literal_text.replace("{", "{{").replace("}", "}}")
+            )
+            if field_name is None:
+                continue
+            if field_name not in MESSAGE_FIELDS:
                 warnings.warn(
-                    f"Don't recognize the argument '{argument[0]}' in the --msg-template. "
+                    f"Don't recognize the argument '{field_name}' in the --msg-template. "
                     "Are you sure it is supported on the current version of pylint?"
                 )
-                template = re.sub(r"\{" + argument[0] + r"(:.*?)?\}", "", template)
-        self._fixed_template = template
+                continue
+            rebuilt_template.append(f"{{{field_name}")
+            if conversion:
+                rebuilt_template.append(f"!{conversion}")
+            if format_spec:
+                rebuilt_template.append(f":{format_spec}")
+            rebuilt_template.append("}")
+        self._fixed_template = "".join(rebuilt_template)
 
     def write_message(self, msg: Message) -> None:
         """Convenience method to write a formatted message with class default

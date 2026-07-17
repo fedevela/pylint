@@ -6,12 +6,14 @@
 
 from __future__ import annotations
 
+import string
 import sys
 import warnings
 from contextlib import redirect_stdout
 from io import StringIO
 from json import dumps
-from typing import TYPE_CHECKING
+from types import SimpleNamespace
+from typing import TYPE_CHECKING, cast
 
 import pytest
 
@@ -46,6 +48,137 @@ def test_template_option(linter):
     linter.add_message("C0301", line=1, args=(1, 2))
     linter.add_message("line-too-long", line=2, args=(3, 4))
     assert output.getvalue() == "************* Module 0123\nC0301:001\nC0301:002\n"
+
+
+def _render_categories(template: str, *message_ids: str) -> list[str]:
+    output = StringIO()
+    reporter = _configure_template(template, output)
+
+    for message_id in message_ids:
+        reporter.write_message(
+            Message(
+                message_id,
+                "test-symbol",
+                MessageLocationTuple("/test.py", "test.py", "test_module", "", 1, 0),
+                "test message",
+                HIGH,
+            )
+        )
+    return output.getvalue().splitlines()
+
+
+def _configure_template(template: str, output: StringIO | None = None) -> TextReporter:
+    reporter = TextReporter(output if output is not None else StringIO())
+    reporter.linter = cast(
+        PyLinter, SimpleNamespace(config=SimpleNamespace(msg_template=template))
+    )
+    reporter.on_set_current_module("test_module", "test.py")
+    return reporter
+
+
+def test_brace_001_escaped_category_template_renders_braces_and_message_category():
+    """GUID: BRACE-001 - Render escaped braces around the message category."""
+    assert _render_categories('{{ "Category": "{category}" }}', "C0001") == [
+        '{ "Category": "convention" }'
+    ]
+
+
+def test_brace_002_doubled_braces_are_literals_and_category_is_only_field():
+    """GUID: BRACE-002 - Recognize escaped braces and only the category field."""
+    reporter = _configure_template('{{ "Category": "{category}" }}')
+
+    field_names = [
+        field_name
+        for _, field_name, _, _ in string.Formatter().parse(reporter._fixed_template)
+        if field_name is not None
+    ]
+    assert field_names == ["category"]
+
+
+def test_brace_003_valid_escaped_content_emits_no_unsupported_argument_warning():
+    """GUID: BRACE-003 - Accept escaped content without an argument warning."""
+    with warnings.catch_warnings(record=True) as caught_warnings:
+        warnings.simplefilter("always")
+        _configure_template('{{ "Category": "{category}" }}')
+
+    assert caught_warnings == []
+
+
+def test_brace_004_render_preserves_text_whitespace_quotes_and_escaped_braces():
+    """GUID: BRACE-004 - Preserve literals surrounding a rendered placeholder."""
+    template = 'Result:  {{ "Category": "{category}" }}  complete'
+    assert _render_categories(template, "C0001") == [
+        'Result:  { "Category": "convention" }  complete'
+    ]
+
+
+def test_brace_005_supported_placeholder_renders_value_with_or_without_braces():
+    """GUID: BRACE-005 - Render supported values in plain and brace templates."""
+    assert _render_categories("{category}", "C0001") == ["convention"]
+    assert _render_categories("{{{category}}}", "C0001") == ["{convention}"]
+
+
+def test_brace_006_unsupported_replacement_field_emits_existing_warning():
+    """GUID: BRACE-006 - Keep warning for an unsupported replacement field."""
+    with pytest.warns(UserWarning, match="argument 'unsupported'") as caught_warnings:
+        reporter = _configure_template("{category} {unsupported}")
+
+    assert len(caught_warnings) == 1
+    assert reporter._fixed_template == "{category} "
+
+
+def test_brace_003_brace_006_mixed_template_reports_only_unsupported_field():
+    """GUID: BRACE-003, BRACE-006 - Ignore escaped content but warn on the field."""
+    template = '{{ "Category": "{category}" }} {unsupported}'
+    with pytest.warns(UserWarning, match="argument 'unsupported'") as caught_warnings:
+        reporter = _configure_template(template)
+
+    assert len(caught_warnings) == 1
+    assert reporter._fixed_template == '{{ "Category": "{category}" }} '
+
+
+def test_brace_007_escaped_template_renders_each_messages_own_category():
+    """GUID: BRACE-007 - Format each message with its own category value."""
+    template = '{{ "Category": "{category}" }}'
+    assert _render_categories(template, "C0001", "W0001") == [
+        '{ "Category": "convention" }',
+        '{ "Category": "warning" }',
+    ]
+
+
+# Architecture contract -- GUID: BRACE-008
+# Reporter unit tests own this regression because its three obligations cross the
+# existing template lifecycle without requiring a new production interface.
+# Rendering coverage enters through _render_categories(), whose only dependency is
+# the configured TextReporter returned by _configure_template(). Warning coverage
+# terminates at _configure_template(), where on_set_current_module() validates fields;
+# it must not depend on message emission. Keep the ordinary and unsupported-field
+# baselines in this cluster so all BRACE-008 branches share those same two seams.
+def test_brace_008_escaped_braces_around_field_render_literals_and_value():
+    """GUID: BRACE-008 - Render literal braces and the recognized field value."""
+    assert _render_categories('{{ "Category": "{category}" }}', "C0001") == [
+        '{ "Category": "convention" }'
+    ]
+
+
+def test_brace_008_escaped_literal_braces_do_not_warn_as_unsupported():
+    """GUID: BRACE-008 - Do not warn for escaped braces around a known field."""
+    with warnings.catch_warnings(record=True) as caught_warnings:
+        warnings.simplefilter("always")
+        _configure_template('{{ "Category": "{category}" }}')
+
+    assert caught_warnings == []
+
+
+def test_brace_008_ordinary_field_renders_and_unsupported_field_warns():
+    """GUID: BRACE-008 - Retain rendering and genuine unsupported-field warnings."""
+    assert _render_categories("{category}", "C0001") == ["convention"]
+
+    with pytest.warns(UserWarning, match="argument 'unsupported'") as caught_warnings:
+        reporter = _configure_template("{category} {unsupported}")
+
+    assert len(caught_warnings) == 1
+    assert reporter._fixed_template == "{category} "
 
 
 def test_template_option_default(linter) -> None:
