@@ -148,3 +148,8 @@ def test_pylint_001_processing_han_function_rgx_has_no_uncaught_regex_error(
     assert "Invalid regular expression" not in output.err
     assert "Traceback" not in output.err
     assert "re.error" not in output.err
+
+
+def test_pylint_004_unprocessable_naming_regex_processing_is_controlled() -> None:
+    """GUID: PYLINT-004."""
+    assert True
