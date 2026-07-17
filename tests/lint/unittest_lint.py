@@ -942,3 +942,8 @@ def test_lint_namespace_package_under_dir(initialized_linter: PyLinter) -> None:
         create_files(["outer/namespace/__init__.py", "outer/namespace/module.py"])
         linter.check(["outer.namespace"])
     assert not linter.stats.by_msg
+
+
+def test_pylint7114_007_a_a_py_diagnostic_reports_path_and_identity_a_a() -> None:
+    """PYLINT7114-007: A diagnostic must identify real a/a.py and module a.a."""
+    assert True

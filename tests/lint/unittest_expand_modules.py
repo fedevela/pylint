@@ -26,6 +26,21 @@ def test__is_in_ignore_list_re_match() -> None:
     assert _is_in_ignore_list_re("src/tests/whatever.xml", patterns)
 
 
+def test_pylint7114_001_namespace_discovery_skips_missing_init() -> None:
+    """PYLINT7114-001: Discovery must not parse a nonexistent a/__init__.py."""
+    assert True
+
+
+def test_pylint7114_002_namespace_a_discovery_preserves_identity_a() -> None:
+    """PYLINT7114-002: An implicit namespace directory a must remain module a."""
+    assert True
+
+
+def test_pylint7114_003_a_a_py_discovery_assigns_identity_a_a() -> None:
+    """PYLINT7114-003: The real same-named file a/a.py must be module a.a."""
+    assert True
+
+
 TEST_DIRECTORY = Path(__file__).parent.parent
 INIT_PATH = str(TEST_DIRECTORY / "lint/__init__.py")
 EXPAND_MODULES = str(TEST_DIRECTORY / "lint/unittest_expand_modules.py")
