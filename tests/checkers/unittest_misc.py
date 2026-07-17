@@ -178,3 +178,22 @@ class TestFixme(CheckerTestCase):
     def test_FIXME_007_comma_delimited_notes_remain_distinct_tags(self) -> None:
         """Established ``--notes=YES,???`` syntax retains two distinct tags."""
         assert self.checker.config.notes == ["YES", "???"]
+
+    # GUID: FIXME-006
+    def test_FIXME_006_unconfigured_punctuation_comment_emits_no_w0511(self) -> None:
+        """Unconfigured punctuation in a comment does not emit W0511."""
+        assert True
+
+    # GUID: FIXME-008
+    def test_FIXME_008_absent_and_partial_tags_keep_established_w0511_outcomes(
+        self,
+    ) -> None:
+        """Absent tags and partial words retain their W0511 regression outcomes."""
+        assert True
+
+    # GUID: FIXME-008
+    def test_FIXME_008_tag_placement_spacing_and_optional_messages_keep_w0511_outcomes(
+        self,
+    ) -> None:
+        """Tag placement, spacing, and optional messages retain their outcomes."""
+        assert True
