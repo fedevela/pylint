@@ -13,7 +13,10 @@ from typing import Any
 
 from pylint import config
 from pylint.config.config_initialization import _config_initialization
-from pylint.config.exceptions import ArgumentPreprocessingError
+from pylint.config.exceptions import (
+    ArgumentPreprocessingError,
+    _UnrecognizedOptionError,
+)
 from pylint.config.utils import _preprocess_options
 from pylint.constants import full_version
 from pylint.lint.base_options import _make_run_options
@@ -132,9 +135,22 @@ group are mutually exclusive.",
         linter.disable("I")
         linter.enable("c-extension-no-member")
 
-        args = _config_initialization(
-            linter, args, reporter, config_file=self._rcfile, verbose_mode=self.verbose
-        )
+        try:
+            args = _config_initialization(
+                linter,
+                args,
+                reporter,
+                config_file=self._rcfile,
+                verbose_mode=self.verbose,
+            )
+        except _UnrecognizedOptionError as exc:
+            linter._arg_parser.print_usage(sys.stderr)
+            options = ", ".join(exc.options)
+            print(
+                f"pylint: error: Unrecognized option found: {options}",
+                file=sys.stderr,
+            )
+            sys.exit(32)
 
         if linter.config.jobs < 0:
             print(

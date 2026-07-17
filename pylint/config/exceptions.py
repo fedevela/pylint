@@ -12,7 +12,7 @@ class UnrecognizedArgumentAction(Exception):
 
 
 class _UnrecognizedOptionError(Exception):
-    """Raised if an ArgumentManager instance tries to parse an option that is unknown."""
+    """Raised if an argument manager encounters an unknown option."""
 
     def __init__(self, options: list[str], *args: object) -> None:
         self.options = options
