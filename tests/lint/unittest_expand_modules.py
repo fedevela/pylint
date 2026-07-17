@@ -96,9 +96,35 @@ def test_pylint7114_004_a_a_and_a_b_discovery_keeps_a_b_resolvable_as_a_b(
 
 
 def test_pylint7114_008_conventional_package_real_init_and_modules_remain_discoverable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """PYLINT7114-008: Discovery retains real __init__.py and package modules."""
-    assert True
+    package = tmp_path / "a"
+    package.mkdir()
+    initializer = package / "__init__.py"
+    first_module = package / "a.py"
+    second_module = package / "b.py"
+    for module in (initializer, first_module, second_module):
+        module.touch()
+    monkeypatch.chdir(tmp_path)
+
+    modules, errors = expand_modules(["a"], [], [], [])
+
+    assert not errors
+    discovered = {
+        Path(module["path"]).resolve(): (
+            module["name"],
+            module["isarg"],
+            Path(module["basepath"]).resolve(),
+            module["basename"],
+        )
+        for module in modules
+    }
+    assert discovered == {
+        initializer.resolve(): ("a", True, initializer.resolve(), "a"),
+        first_module.resolve(): ("a.a", False, initializer.resolve(), "a"),
+        second_module.resolve(): ("a.b", False, initializer.resolve(), "a"),
+    }
 
 
 TEST_DIRECTORY = Path(__file__).parent.parent

@@ -991,4 +991,27 @@ def test_pylint7114_007_a_a_py_diagnostic_reports_path_and_identity_a_a() -> Non
 def test_pylint7114_008_lint_conventional_package_processes_real_init_and_modules(
 ) -> None:
     """PYLINT7114-008: Linting retains real __init__.py and package modules."""
-    assert True
+    reporter = testutils.GenericTestReporter()
+    linter = PyLinter()
+    linter.load_default_plugins()
+    linter.open()
+    linter.set_reporter(reporter)
+
+    with tempdir():
+        create_files(["a/__init__.py", "a/a.py", "a/b.py"])
+        Path("a/__init__.py").write_text("init_missing\n", encoding="utf-8")
+        Path("a/a.py").write_text("first_missing\n", encoding="utf-8")
+        Path("a/b.py").write_text("second_missing\n", encoding="utf-8")
+
+        linter.check(["a"])
+
+    undefined_variables = {
+        (message.module, message.path, message.msg)
+        for message in reporter.messages
+        if message.symbol == "undefined-variable"
+    }
+    assert undefined_variables == {
+        ("a", os.path.join("a", "__init__.py"), "Undefined variable 'init_missing'"),
+        ("a.a", os.path.join("a", "a.py"), "Undefined variable 'first_missing'"),
+        ("a.b", os.path.join("a", "b.py"), "Undefined variable 'second_missing'"),
+    }
