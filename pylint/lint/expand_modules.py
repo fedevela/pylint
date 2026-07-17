@@ -90,6 +90,24 @@ def expand_modules(
                 )
             except ImportError:
                 modname = os.path.splitext(basename)[0]
+            # Pseudocode: implicit namespace and same-named module discovery.
+            # [PYLINT7114-001] IF `something` is a directory, derive its potential
+            # initializer path; IF that initializer exists, continue with the
+            # conventional-package path; ELSE classify the real directory as an
+            # implicit namespace and NEVER send the missing initializer to parsing.
+            # [PYLINT7114-002] FOR that namespace branch, preserve `modname` as the
+            # directory's identity (for example, `a`) and use the real directory as
+            # the discovery base without replacing its identity with a child module.
+            # [PYLINT7114-003] FOR EACH real Python file below the namespace, derive
+            # its identity from the namespace plus its relative module parts; retain
+            # a same-named file as a distinct child (`a/a.py` -> `a.a`) and enqueue
+            # its real path even when its basename equals the namespace basename.
+            # [PYLINT7114-007] HAND OFF each child descriptor with the paired values
+            # `path = real child path` and `name = derived child identity`; downstream
+            # parsing, current-module state, and reporting MUST consume that pair so
+            # diagnostics identify `a/a.py` and `a.a`. IF namespace or child
+            # resolution fails, record/propagate the existing discovery error path;
+            # DO NOT fall back to a fabricated initializer or collapsed identity.
             if os.path.isdir(something):
                 filepath = os.path.join(something, "__init__.py")
             else:
