@@ -646,6 +646,9 @@ class PyLinter(
                     [self._get_file_descr_from_stdin(filepath)],
                 )
         elif self.config.jobs == 1:
+            # Combined-lint boundary: the invocation import context encloses the
+            # complete discovery stream; FileItem consumers do not rebuild or
+            # collapse sibling module identities (PYLINT7114-004, PYLINT7114-006).
             with fix_import_path(files_or_modules):
                 self._check_files(
                     self.get_ast, self._iterate_file_descrs(files_or_modules)
@@ -766,7 +769,21 @@ class PyLinter(
 
         The returned generator yield one item for each Python module that should be linted.
         """
+        # PYLINT7114-008 -- conventional-package linting logic obligation:
+        # INPUT: the ordered descriptors produced for a conventional package.
+        # FOR EACH real initializer or package-module descriptor, preserve its
+        # correlated name, path, argument state, and package basename.
+        # IF the existing analysis policy accepts it, hand off one FileItem so
+        # downstream checking lints that real source under its discovered identity;
+        # ELSE omit it under the existing policy. Expansion failures remain handled
+        # by _expand_files and do not become synthetic lint targets.
         for descr in self._expand_files(files_or_modules):
+            # Discovery/lint integration seam: preserve the descriptor's correlated
+            # real path and module identity in one FileItem. Resolution remains owned
+            # by expand_modules (PYLINT7114-001, PYLINT7114-002, PYLINT7114-003,
+            # PYLINT7114-004, PYLINT7114-006, PYLINT7114-007).
+            # The same seam carries the conventional package's real initializer and
+            # each discovered child without reclassification (PYLINT7114-008).
             name, filepath, is_arg = descr["name"], descr["path"], descr["isarg"]
             if self.should_analyze_file(name, filepath, is_argument=is_arg):
                 yield FileItem(name, filepath, descr["basename"])

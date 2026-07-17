@@ -942,3 +942,76 @@ def test_lint_namespace_package_under_dir(initialized_linter: PyLinter) -> None:
         create_files(["outer/namespace/__init__.py", "outer/namespace/module.py"])
         linter.check(["outer.namespace"])
     assert not linter.stats.by_msg
+
+
+def test_pylint7114_006_lint_e_r_from_a_import_b_then_a_with_a_a_and_a_b_omits_e0611(
+) -> None:
+    """PYLINT7114-006: `pylint -E r a` must resolve b with a/a.py and a/b.py."""
+    reporter = testutils.GenericTestReporter()
+    linter = PyLinter()
+    linter.load_default_plugins()
+    linter.open()
+    linter.set_reporter(reporter)
+    linter._error_mode = True
+    linter._parse_error_mode()
+
+    with tempdir():
+        create_files(["r.py", "a/a.py", "a/b.py"])
+        Path("r.py").write_text("from a import b\n", encoding="utf-8")
+        linter.check(["r", "a"])
+
+    assert not reporter.messages
+
+
+def test_pylint7114_007_a_a_py_diagnostic_reports_path_and_identity_a_a() -> None:
+    """PYLINT7114-007: A diagnostic must identify real a/a.py and module a.a."""
+    reporter = testutils.GenericTestReporter()
+    linter = PyLinter()
+    linter.load_default_plugins()
+    linter.open()
+    linter.set_reporter(reporter)
+
+    with tempdir():
+        create_files(["a/a.py"])
+        Path("a/a.py").write_text("print('diagnostic')\n", encoding="utf-8")
+        expected_path = Path("a/a.py").resolve()
+
+        linter.check(["a"])
+
+    diagnostic = next(
+        message
+        for message in reporter.messages
+        if message.symbol == "missing-module-docstring"
+    )
+    assert Path(diagnostic.abspath) == expected_path
+    assert diagnostic.path.endswith(os.path.join("a", "a.py"))
+    assert diagnostic.module == "a.a"
+
+
+def test_pylint7114_008_lint_conventional_package_processes_real_init_and_modules(
+) -> None:
+    """PYLINT7114-008: Linting retains real __init__.py and package modules."""
+    reporter = testutils.GenericTestReporter()
+    linter = PyLinter()
+    linter.load_default_plugins()
+    linter.open()
+    linter.set_reporter(reporter)
+
+    with tempdir():
+        create_files(["a/__init__.py", "a/a.py", "a/b.py"])
+        Path("a/__init__.py").write_text("init_missing\n", encoding="utf-8")
+        Path("a/a.py").write_text("first_missing\n", encoding="utf-8")
+        Path("a/b.py").write_text("second_missing\n", encoding="utf-8")
+
+        linter.check(["a"])
+
+    undefined_variables = {
+        (message.module, message.path, message.msg)
+        for message in reporter.messages
+        if message.symbol == "undefined-variable"
+    }
+    assert undefined_variables == {
+        ("a", os.path.join("a", "__init__.py"), "Undefined variable 'init_missing'"),
+        ("a.a", os.path.join("a", "a.py"), "Undefined variable 'first_missing'"),
+        ("a.b", os.path.join("a", "b.py"), "Undefined variable 'second_missing'"),
+    }

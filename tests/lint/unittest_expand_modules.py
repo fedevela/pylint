@@ -12,7 +12,11 @@ import pytest
 from pylint.checkers import BaseChecker
 from pylint.lint.expand_modules import _is_in_ignore_list_re, expand_modules
 from pylint.testutils import CheckerTestCase, set_config
-from pylint.typing import MessageDefinitionTuple
+from pylint.typing import (
+    ErrorDescriptionDict,
+    MessageDefinitionTuple,
+    ModuleDescriptionDict,
+)
 
 
 def test__is_in_ignore_list_re_match() -> None:
@@ -24,6 +28,103 @@ def test__is_in_ignore_list_re_match() -> None:
     assert _is_in_ignore_list_re("unittest_utils.py", patterns)
     assert _is_in_ignore_list_re("cheese_enchiladas.xml", patterns)
     assert _is_in_ignore_list_re("src/tests/whatever.xml", patterns)
+
+
+def _expand_implicit_namespace(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    module_filenames: tuple[str, ...] = ("a.py",),
+) -> tuple[list[ModuleDescriptionDict], list[ErrorDescriptionDict]]:
+    namespace = tmp_path / "a"
+    namespace.mkdir()
+    for module_filename in module_filenames:
+        (namespace / module_filename).touch()
+    monkeypatch.chdir(tmp_path)
+    return expand_modules(["a"], [], [], [])
+
+
+def test_pylint7114_001_namespace_discovery_skips_missing_init(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PYLINT7114-001: Discovery must not parse a nonexistent a/__init__.py."""
+    modules, errors = _expand_implicit_namespace(tmp_path, monkeypatch)
+
+    assert not errors
+    assert modules
+    assert all(Path(module["path"]).name != "__init__.py" for module in modules)
+    assert all(Path(module["basepath"]).name != "__init__.py" for module in modules)
+
+
+def test_pylint7114_002_namespace_a_discovery_preserves_identity_a(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PYLINT7114-002: An implicit namespace directory a must remain module a."""
+    modules, errors = _expand_implicit_namespace(tmp_path, monkeypatch)
+
+    assert not errors
+    assert {module["basename"] for module in modules} == {"a"}
+    assert {Path(module["basepath"]).resolve() for module in modules} == {
+        (tmp_path / "a").resolve()
+    }
+
+
+def test_pylint7114_003_a_a_py_discovery_assigns_identity_a_a(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PYLINT7114-003: The real same-named file a/a.py must be module a.a."""
+    modules, errors = _expand_implicit_namespace(tmp_path, monkeypatch)
+
+    assert not errors
+    assert [(Path(module["path"]).resolve(), module["name"]) for module in modules] == [
+        ((tmp_path / "a" / "a.py").resolve(), "a.a")
+    ]
+
+
+def test_pylint7114_004_a_a_and_a_b_discovery_keeps_a_b_resolvable_as_a_b(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PYLINT7114-004: With a/a.py and a/b.py, discovery preserves a/b.py as a.b."""
+    modules, errors = _expand_implicit_namespace(
+        tmp_path, monkeypatch, ("a.py", "b.py")
+    )
+
+    assert not errors
+    assert {(Path(module["path"]).resolve(), module["name"]) for module in modules} == {
+        ((tmp_path / "a" / "a.py").resolve(), "a.a"),
+        ((tmp_path / "a" / "b.py").resolve(), "a.b"),
+    }
+
+
+def test_pylint7114_008_conventional_package_real_init_and_modules_remain_discoverable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """PYLINT7114-008: Discovery retains real __init__.py and package modules."""
+    package = tmp_path / "a"
+    package.mkdir()
+    initializer = package / "__init__.py"
+    first_module = package / "a.py"
+    second_module = package / "b.py"
+    for module in (initializer, first_module, second_module):
+        module.touch()
+    monkeypatch.chdir(tmp_path)
+
+    modules, errors = expand_modules(["a"], [], [], [])
+
+    assert not errors
+    discovered = {
+        Path(module["path"]).resolve(): (
+            module["name"],
+            module["isarg"],
+            Path(module["basepath"]).resolve(),
+            module["basename"],
+        )
+        for module in modules
+    }
+    assert discovered == {
+        initializer.resolve(): ("a", True, initializer.resolve(), "a"),
+        first_module.resolve(): ("a.a", False, initializer.resolve(), "a"),
+        second_module.resolve(): ("a.b", False, initializer.resolve(), "a"),
+    }
 
 
 TEST_DIRECTORY = Path(__file__).parent.parent

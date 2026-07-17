@@ -61,6 +61,12 @@ def _is_ignored_file(
     )
 
 
+# Discovery owns namespace classification, real-path selection, and identity
+# construction. It exports those decisions only through paired descriptor fields
+# (PYLINT7114-001, PYLINT7114-002, PYLINT7114-003, PYLINT7114-004,
+# PYLINT7114-006, PYLINT7114-007, PYLINT7114-008). Conventional-package
+# ownership includes selecting the real initializer and enumerating its children;
+# namespace handling must not bypass that explicit-package branch (PYLINT7114-008).
 def expand_modules(
     files_or_modules: Sequence[str],
     ignore_list: list[str],
@@ -82,8 +88,20 @@ def expand_modules(
             continue
         module_path = get_python_path(something)
         additional_search_path = [".", module_path] + path
-        if os.path.exists(something):
-            # this is a file or a directory
+        # PYLINT7114-008 -- conventional-package discovery logic obligation:
+        # INPUT: a requested directory and its real ``__init__.py`` marker.
+        # IF the marker exists, classify the request as an explicit package;
+        # derive its established module name and select the marker as ``filepath``.
+        # AFTER metadata lookup, append that initializer descriptor when the
+        # package is not a namespace, then enumerate the package directory.
+        # FOR EACH non-ignored child distinct from the initializer, derive the
+        # child's module identity and append its descriptor without replacing
+        # the initializer. Preserve the existing ImportError/SyntaxError paths:
+        # fall back where already defined, or record the fatal error and continue.
+        if os.path.isfile(something) or os.path.exists(
+            os.path.join(something, "__init__.py")
+        ):
+            # This is a file or a directory with an explicit __init__.py.
             try:
                 modname = ".".join(
                     modutils.modpath_from_file(something, path=additional_search_path)
@@ -136,6 +154,8 @@ def expand_modules(
             and os.path.basename(filepath) == "__init__.py"
         )
         if has_init or is_namespace or is_directory:
+            # Resolve each namespace child independently so a same-named child
+            # cannot replace a sibling's path/name pair (PYLINT7114-004).
             for subfilepath in modutils.get_module_files(
                 os.path.dirname(filepath), ignore_list, list_all=is_namespace
             ):

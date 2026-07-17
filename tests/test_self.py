@@ -906,6 +906,67 @@ a.py:1:4: E0001: Parsing failed: 'invalid syntax (<unknown>, line 1)' (syntax-er
             stderr=subprocess.PIPE,
         )
 
+    # PYLINT7114-005 / PYLINT7114-009 architecture boundary:
+    # TestRunTC owns the direct CLI regression and its captured outcome through the
+    # existing private _run_pylint seam. The committed
+    # regrtest_data/pylint7114_005_009_initializer_free_collision fixture owns the
+    # immutable namespace-package topology. These tests consume that fixture from
+    # its root with relative target "a"; fixture setup must not flow back into the
+    # tests or create a/__init__.py. The two PYLINT7114-005 outcome checks share
+    # that invocation boundary, while PYLINT7114-009 guards only fixture structure.
+
+    def test_pylint7114_005_direct_lint_a_with_initializer_free_a_a_and_a_b_completes_without_collision_error(
+        self,
+    ) -> None:
+        """PYLINT7114-005: `pylint a` completes without a same-name collision error."""
+        fixture_root = Path(
+            HERE, "regrtest_data", "pylint7114_005_009_initializer_free_collision"
+        )
+        out = StringIO()
+
+        with _test_cwd(fixture_root):
+            pylint_code = self._run_pylint(["a"], out=out)
+
+        assert pylint_code == 0, out.getvalue()
+
+    def test_pylint7114_005_direct_lint_a_omits_parse_error_for_nonexistent_a_init(
+        self,
+    ) -> None:
+        """PYLINT7114-005: Diagnostics omit a parse error for absent a/__init__.py."""
+        fixture_root = Path(
+            HERE, "regrtest_data", "pylint7114_005_009_initializer_free_collision"
+        )
+        out = StringIO()
+
+        with _test_cwd(fixture_root):
+            self._run_pylint(["a"], out=out)
+
+        output = self._clean_paths(out.getvalue())
+        parse_errors = [
+            diagnostic
+            for diagnostic in output.splitlines()
+            if "(parse-error)" in diagnostic
+        ]
+        assert not any("a/__init__.py" in error for error in parse_errors), output
+
+    @staticmethod
+    def test_pylint7114_009_fixture_has_empty_a_a_and_a_b_without_a_init() -> None:
+        """PYLINT7114-009: The direct-lint fixture remains initializer-free."""
+        fixture = Path(
+            HERE,
+            "regrtest_data",
+            "pylint7114_005_009_initializer_free_collision",
+            "a",
+        )
+
+        for module_name in ("a.py", "b.py"):
+            module = fixture / module_name
+            assert module.is_file(), module
+            assert module.read_text(encoding="utf-8") == "", module
+
+        initializer = fixture / "__init__.py"
+        assert not initializer.exists(), initializer
+
     @pytest.mark.needs_two_cores
     def test_jobs_score(self) -> None:
         path = join(HERE, "regrtest_data", "unused_variable.py")
