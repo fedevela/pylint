@@ -46,6 +46,11 @@ def _is_in_ignore_list_re(element: str, ignore_list_re: list[Pattern[str]]) -> b
     return any(file_pattern.match(element) for file_pattern in ignore_list_re)
 
 
+# Architecture contract (GEV-001, GEV-002, GEV-003, GEV-006): callers own
+# candidate enumeration, while this central ignore-admission boundary owns
+# applying configured basename and path ignore forms. Cross-platform
+# ``ignore-paths`` expressions remain owned by ``regexp_paths_csv`` configuration
+# compilation; callers pass native paths without changing regex semantics.
 def _is_ignored_file(
     element: str,
     ignore_list: list[str],
