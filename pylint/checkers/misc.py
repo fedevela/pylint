@@ -83,9 +83,10 @@ class EncodingChecker(BaseChecker):
 
     __implements__ = (IRawChecker, ITokenChecker)
 
-    # Architecture contract -- GUID: FIXME-001, FIXME-003, FIXME-004
-    # ``open`` owns construction from note configuration; ``process_tokens`` owns
-    # matching comment tokens and translating a match into location and payload.
+    # Architecture contract -- GUID: FIXME-001, FIXME-002, FIXME-003, FIXME-004,
+    # FIXME-005, FIXME-007. The shared CSV option boundary supplies distinct tags;
+    # ``open`` exclusively adapts them into this private matcher; ``process_tokens``
+    # owns matching comment tokens and translating one match into one W0511 payload.
     _fixme_pattern: Pattern[str]
 
     # configuration section name
@@ -102,6 +103,8 @@ class EncodingChecker(BaseChecker):
         (
             "notes",
             {
+                # Architecture boundary -- GUID: FIXME-007. Keep parsing delegated
+                # to the shared CSV option contract and pass its tag sequence inward.
                 # Pseudocode contract -- GUID: FIXME-007
                 # INPUT: the established comma-delimited --notes value.
                 # PARSE it only through the existing CSV option semantics.
@@ -129,6 +132,8 @@ class EncodingChecker(BaseChecker):
     def open(self):
         super().open()
 
+        # Architecture ownership -- GUID: FIXME-005. This lifecycle seam alone
+        # converts the configured tag sequence into the checker's private matcher.
         # Pseudocode contract -- GUID: FIXME-005
         # INPUT: config.notes contains the tags produced by the established CSV option.
         # FOR EACH tag, escape it independently.
@@ -210,7 +215,9 @@ class EncodingChecker(BaseChecker):
                     )
                     continue
 
-            # GUID: FIXME-001, FIXME-003, FIXME-004
+            # Integration seam -- GUID: FIXME-001, FIXME-002, FIXME-003, FIXME-004,
+            # FIXME-005. Token handling remains the sole consumer of the matcher and
+            # the existing add_message path remains the sole W0511 output boundary.
             match = self._fixme_pattern.search("#" + comment_text.lower())
             # Pseudocode contract -- GUID: FIXME-002, FIXME-005
             # FOR EACH comment token, search the mixed-tag matcher exactly once.
