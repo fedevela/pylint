@@ -39,6 +39,7 @@ from pylint.constants import (
 )
 from pylint.exceptions import InvalidMessageError
 from pylint.lint import PyLinter
+from pylint.lint.expand_modules import _is_ignored_file
 from pylint.lint.utils import fix_import_path
 from pylint.message import Message
 from pylint.reporters import text
@@ -881,6 +882,7 @@ def test_by_module_statement_value(initialized_linter: PyLinter) -> None:
     ],
 )
 def test_recursive_ignore(ignore_parameter, ignore_parameter_value) -> None:
+    """GEV-009: Preserve existing recursive ignore regression behavior."""
     run = Run(
         [
             "--recursive",
@@ -910,6 +912,153 @@ def test_recursive_ignore(ignore_parameter, ignore_parameter_value) -> None:
     ):
         module = os.path.abspath(join(REGRTEST_DATA_DIR, *regrtest_data_module))
     assert module in linted_file_paths
+
+
+def _create_gev_recursive_project(tmp_path: Path) -> None:
+    create_files(
+        ["src/region_selection.py", "src/gen/about.py"], chroot=str(tmp_path)
+    )
+    (tmp_path / "src/region_selection.py").write_text(
+        "undefined_region_name\n", encoding="utf-8"
+    )
+    (tmp_path / "src/gen/about.py").write_text(
+        "undefined_generated_name\n", encoding="utf-8"
+    )
+    (tmp_path / "pyproject.toml").write_text(
+        '[tool.pylint.MASTER]\nignore-paths = ["^(?:[.]/)?src/gen/.*$"]\n',
+        encoding="utf-8",
+    )
+
+
+def _run_gev_recursive_lint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target: str = "src/"
+) -> tuple[Run, str]:
+    _create_gev_recursive_project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    output = StringIO()
+    run = Run(
+        [
+            "--rcfile=pyproject.toml",
+            "--recursive=y",
+            "--reports=n",
+            "--disable=all",
+            "--enable=undefined-variable",
+            target,
+        ],
+        reporter=text.TextReporter(output),
+        exit=False,
+    )
+    return run, output.getvalue()
+
+
+def test_gev_001_recursive_discovery_applies_pyproject_ignore_paths_before_linting(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GEV-001: Apply configured ignore-paths before recursive lint analysis."""
+    run, output = _run_gev_recursive_lint(tmp_path, monkeypatch)
+    discovered = tuple(run.linter._discover_files(["src/"]))
+
+    assert run.linter.config.ignore_paths[0].match("src/gen/about.py")
+    assert os.path.join("src", "gen", "about.py") not in discovered
+    assert "region_selection" in output
+    assert "about" not in output
+
+
+def test_gev_002_recursive_windows_path_matches_slash_based_ignore_expression(
+    linter: PyLinter,
+) -> None:
+    """GEV-002: Match a native Windows path with a slash-based expression."""
+    linter.set_option("ignore-paths", r"^src/gen/.*$")
+
+    assert _is_ignored_file(
+        r"src\gen\about.py", [], [], linter.config.ignore_paths
+    )
+
+
+def test_gev_003_recursive_matching_file_is_excluded_from_lint_analysis(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GEV-003: Exclude every recursively discovered matching file."""
+    run, _ = _run_gev_recursive_lint(tmp_path, monkeypatch)
+    discovered = tuple(run.linter._discover_files(["src/"]))
+
+    assert os.path.join("src", "gen", "about.py") not in discovered
+    assert all(not module.endswith("about") for module in run.linter.stats.by_module)
+
+
+def test_gev_004_recursive_excluded_file_produces_no_header_or_diagnostic(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GEV-004: Emit no module header or diagnostic for an excluded file."""
+    _, output = _run_gev_recursive_lint(tmp_path, monkeypatch)
+    module_headers = (
+        line for line in output.splitlines() if line.startswith("************* Module")
+    )
+
+    assert all(not header.endswith("about") for header in module_headers)
+    assert "undefined_generated_name" not in output
+
+
+def test_gev_005_recursive_nonmatching_file_remains_eligible_for_lint_analysis(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GEV-005: Keep src/region_selection.py eligible when it does not match."""
+    run, output = _run_gev_recursive_lint(tmp_path, monkeypatch)
+
+    assert any(
+        module.endswith("region_selection") for module in run.linter.stats.by_module
+    )
+    assert "undefined_region_name" in output
+
+
+def test_gev_006_recursive_ignore_paths_preserves_existing_regex_semantics(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, linter: PyLinter
+) -> None:
+    """GEV-006: Preserve existing ignore-paths regular-expression semantics."""
+    _create_gev_recursive_project(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    linter.set_option("ignore-paths", r"^src/(gen|vendor)/[a-z]+[.]py$")
+
+    discovered = tuple(linter._discover_files(["src"]))
+
+    assert os.path.join("src", "gen", "about.py") not in discovered
+    assert os.path.join("src", "region_selection.py") in discovered
+
+
+def test_gev_007_recursive_matching_file_is_excluded_at_every_depth(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, linter: PyLinter
+) -> None:
+    """GEV-007: Exclude matching files at every recursively discovered depth."""
+    create_files(
+        [
+            "src/generated/one.py",
+            "src/nested/generated/two.py",
+            "src/nested/kept.py",
+        ],
+        chroot=str(tmp_path),
+    )
+    monkeypatch.chdir(tmp_path)
+    linter.set_option("ignore-paths", r"^src/(?:.*/)?generated/.*$")
+
+    discovered = tuple(linter._discover_files(["src"]))
+
+    assert os.path.join("src", "generated", "one.py") not in discovered
+    assert os.path.join("src", "nested", "generated", "two.py") not in discovered
+    assert os.path.join("src", "nested", "kept.py") in discovered
+
+
+def test_gev_008_recursive_current_directory_excludes_matching_path_and_retains_nonmatching_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """GEV-008: Exclude matching paths and retain non-matching paths for target `.`."""
+    run, output = _run_gev_recursive_lint(tmp_path, monkeypatch, target=".")
+
+    assert all(not module.endswith("about") for module in run.linter.stats.by_module)
+    assert "about" not in output
+    assert any(
+        module.endswith("region_selection") for module in run.linter.stats.by_module
+    )
+    assert "undefined_region_name" in output
 
 
 def test_import_sibling_module_from_namespace(initialized_linter: PyLinter) -> None:
