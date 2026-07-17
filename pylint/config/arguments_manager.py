@@ -677,8 +677,10 @@ class _ArgumentsManager:
         stdout.
         """
         toml_doc = tomlkit.document()
+        tool_table = tomlkit.table(is_super_table=True)
         pylint_tool_table = tomlkit.table(is_super_table=True)
-        toml_doc.add(tomlkit.key(["tool", "pylint"]), pylint_tool_table)
+        tool_table.add("pylint", pylint_tool_table)
+        toml_doc.add("tool", tool_table)
 
         for group in sorted(
             self._arg_parser._action_groups,

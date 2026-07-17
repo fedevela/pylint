@@ -582,10 +582,6 @@ class PyLinter(
             if not msg.may_be_emitted():
                 self._msgs_state[msg.msgid] = False
 
-    # Architecture contract (GEV-001..GEV-007): this method owns recursive
-    # candidate enumeration and must admit each candidate through the shared
-    # ``_is_ignored_file`` boundary before yielding it. The matcher owns ignore
-    # semantics; downstream lint and reporting own only admitted paths.
     def _discover_files(self, files_or_modules: Sequence[str]) -> Iterator[str]:
         """Discover python modules and packages in sub-directory.
 
