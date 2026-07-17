@@ -646,6 +646,9 @@ class PyLinter(
                     [self._get_file_descr_from_stdin(filepath)],
                 )
         elif self.config.jobs == 1:
+            # Combined-lint boundary: the invocation import context encloses the
+            # complete discovery stream; FileItem consumers do not rebuild or
+            # collapse sibling module identities (PYLINT7114-004, PYLINT7114-006).
             with fix_import_path(files_or_modules):
                 self._check_files(
                     self.get_ast, self._iterate_file_descrs(files_or_modules)
