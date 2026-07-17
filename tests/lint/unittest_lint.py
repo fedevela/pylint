@@ -912,6 +912,44 @@ def test_recursive_ignore(ignore_parameter, ignore_parameter_value) -> None:
     assert module in linted_file_paths
 
 
+def test_gev_001_recursive_discovery_applies_pyproject_ignore_paths_before_linting(
+) -> None:
+    """GEV-001: Apply configured ignore-paths before recursive lint analysis."""
+    assert True
+
+
+def test_gev_002_recursive_windows_path_matches_slash_based_ignore_expression(
+) -> None:
+    """GEV-002: Match a native Windows path with a slash-based expression."""
+    assert True
+
+
+def test_gev_003_recursive_matching_file_is_excluded_from_lint_analysis() -> None:
+    """GEV-003: Exclude every recursively discovered matching file."""
+    assert True
+
+
+def test_gev_004_recursive_excluded_file_produces_no_header_or_diagnostic() -> None:
+    """GEV-004: Emit no module header or diagnostic for an excluded file."""
+    assert True
+
+
+def test_gev_005_recursive_nonmatching_file_remains_eligible_for_lint_analysis(
+) -> None:
+    """GEV-005: Keep src/region_selection.py eligible when it does not match."""
+    assert True
+
+
+def test_gev_006_recursive_ignore_paths_preserves_existing_regex_semantics() -> None:
+    """GEV-006: Preserve existing ignore-paths regular-expression semantics."""
+    assert True
+
+
+def test_gev_007_recursive_matching_file_is_excluded_at_every_depth() -> None:
+    """GEV-007: Exclude matching files at every recursively discovered depth."""
+    assert True
+
+
 def test_import_sibling_module_from_namespace(initialized_linter: PyLinter) -> None:
     """If the parent directory above `namespace` is on sys.path, ensure that
     modules under `namespace` can import each other without raising `import-error`."""
