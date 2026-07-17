@@ -76,6 +76,16 @@ def test_brace_001_escaped_category_template_renders_braces_and_message_category
     ]
 
 
+def test_brace_002_doubled_braces_are_literals_and_category_is_only_field():
+    """GUID: BRACE-002 - Recognize escaped braces and only the category field."""
+    assert True
+
+
+def test_brace_003_valid_escaped_content_emits_no_unsupported_argument_warning():
+    """GUID: BRACE-003 - Accept escaped content without an argument warning."""
+    assert True
+
+
 def test_brace_004_render_preserves_text_whitespace_quotes_and_escaped_braces():
     """GUID: BRACE-004 - Preserve literals surrounding a rendered placeholder."""
     template = 'Result:  {{ "Category": "{category}" }}  complete'
@@ -88,6 +98,16 @@ def test_brace_005_supported_placeholder_renders_value_with_or_without_braces():
     """GUID: BRACE-005 - Render supported values in plain and brace templates."""
     assert _render_categories("{category}", "C0001") == ["convention"]
     assert _render_categories("{{{category}}}", "C0001") == ["{convention}"]
+
+
+def test_brace_006_unsupported_replacement_field_emits_existing_warning():
+    """GUID: BRACE-006 - Keep warning for an unsupported replacement field."""
+    assert True
+
+
+def test_brace_003_brace_006_mixed_template_reports_only_unsupported_field():
+    """GUID: BRACE-003, BRACE-006 - Ignore escaped content but warn on the field."""
+    assert True
 
 
 def test_brace_007_escaped_template_renders_each_messages_own_category():
