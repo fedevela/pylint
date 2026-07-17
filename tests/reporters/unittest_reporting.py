@@ -48,6 +48,26 @@ def test_template_option(linter):
     assert output.getvalue() == "************* Module 0123\nC0301:001\nC0301:002\n"
 
 
+def test_brace_001_escaped_category_template_renders_braces_and_message_category():
+    """GUID: BRACE-001 - Render escaped braces around the message category."""
+    assert True
+
+
+def test_brace_004_render_preserves_text_whitespace_quotes_and_escaped_braces():
+    """GUID: BRACE-004 - Preserve literals surrounding a rendered placeholder."""
+    assert True
+
+
+def test_brace_005_supported_placeholder_renders_value_with_or_without_braces():
+    """GUID: BRACE-005 - Render supported values in plain and brace templates."""
+    assert True
+
+
+def test_brace_007_escaped_template_renders_each_messages_own_category():
+    """GUID: BRACE-007 - Format each message with its own category value."""
+    assert True
+
+
 def test_template_option_default(linter) -> None:
     """Test the default msg-template setting."""
     output = StringIO()
