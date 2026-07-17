@@ -167,6 +167,15 @@ class TextReporter(BaseReporter):
         """Set the format template to be used and check for unrecognized arguments."""
         template = str(self.linter.config.msg_template or self._template)
 
+        # Pseudocode -- GUID: BRACE-004, BRACE-005
+        # INPUT the selected message template.
+        # SCAN the template according to the formatting grammar:
+        #   CLASSIFY doubled opening/closing braces as literal output braces.
+        #   CLASSIFY single-braced supported names as replacement fields.
+        # PRESERVE every literal segment exactly, including whitespace and quotes.
+        # VALIDATE only replacement fields; escaped literal braces are not fields.
+        # RETAIN the validated template for subsequent per-message rendering.
+
         # Return early if the template is the same as the previous one
         if template == self._template:
             return
@@ -189,6 +198,16 @@ class TextReporter(BaseReporter):
         """Convenience method to write a formatted message with class default
         template.
         """
+        # Pseudocode -- GUID: BRACE-001, BRACE-004, BRACE-005, BRACE-007
+        # INPUT one lint message and the retained validated template.
+        # BUILD a fresh replacement-value mapping from this message only.
+        # NORMALIZE optional position values required by the existing format contract.
+        # FORMAT once with the fresh mapping:
+        #   REPLACE each supported field with this message's corresponding value.
+        #   EMIT each doubled brace as one literal brace.
+        #   COPY all other literal text, whitespace, and quotes unchanged.
+        # WRITE the resulting line, then DISCARD the per-message mapping and result.
+        # FAILURE: PROPAGATE a formatting error; do not emit a partial or cached line.
         self_dict = asdict(msg)
         for key in ("end_line", "end_column"):
             self_dict[key] = self_dict[key] or ""
