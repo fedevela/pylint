@@ -102,6 +102,11 @@ class EncodingChecker(BaseChecker):
         (
             "notes",
             {
+                # Pseudocode contract -- GUID: FIXME-007
+                # INPUT: the established comma-delimited --notes value.
+                # PARSE it only through the existing CSV option semantics.
+                # PRESERVE YES and ??? as distinct ordered config.notes entries.
+                # HAND OFF that tag sequence to open; retain existing parser failures.
                 "type": "csv",
                 "metavar": "<comma separated values>",
                 "default": ("FIXME", "XXX", "TODO"),
@@ -124,6 +129,13 @@ class EncodingChecker(BaseChecker):
     def open(self):
         super().open()
 
+        # Pseudocode contract -- GUID: FIXME-005
+        # INPUT: config.notes contains the tags produced by the established CSV option.
+        # FOR EACH tag, escape it independently.
+        # IF the tag contains a word character, retain its established word boundary.
+        # ELSE delimit the punctuation-only tag at a note terminator.
+        # JOIN the independently prepared tags as alternatives in one matcher.
+        # OUTPUT: word-character and punctuation-only tags remain independently matchable.
         # Punctuation-only tags have no word boundary, so delimit them explicitly.
         # GUID: FIXME-001
         notes = "|".join(
@@ -200,6 +212,12 @@ class EncodingChecker(BaseChecker):
 
             # GUID: FIXME-001, FIXME-003, FIXME-004
             match = self._fixme_pattern.search("#" + comment_text.lower())
+            # Pseudocode contract -- GUID: FIXME-002, FIXME-005
+            # FOR EACH comment token, search the mixed-tag matcher exactly once.
+            # IF no configured tag matches, emit no W0511 and continue.
+            # IF YES matches, preserve the established message text and source location.
+            # IF ??? matches, preserve the same W0511 message path.
+            # EMIT exactly one W0511 for the matching comment, then advance to the next token.
             if match:
                 self.add_message(
                     "fixme",
