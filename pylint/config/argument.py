@@ -41,6 +41,13 @@ _ArgumentTypes = Union[
 ]
 """List of possible argument types."""
 
+_ArgumentTransformer = Callable[[str], _ArgumentTypes]
+"""Private configuration-value transformation contract.
+
+PYLINT-001 uses this contract for the module-owned boundary between regular
+expression compilation and argparse validation.
+"""
+
 
 def _confidence_transformer(value: str) -> Sequence[str]:
     """Transforms a comma separated string of confidence values."""
@@ -138,7 +145,7 @@ def _regexp_paths_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
     return patterns
 
 
-_TYPE_TRANSFORMERS: dict[str, Callable[[str], _ArgumentTypes]] = {
+_TYPE_TRANSFORMERS: dict[str, _ArgumentTransformer] = {
     "choice": str,
     "csv": _csv_transformer,
     "float": float,
@@ -147,6 +154,10 @@ _TYPE_TRANSFORMERS: dict[str, Callable[[str], _ArgumentTypes]] = {
     "non_empty_string": _non_empty_string_transformer,
     "path": _path_transformer,
     "py_version": _py_version_transformer,
+    # PYLINT-001 integration seam: the single-regexp entry is owned here and
+    # must target a private adapter conforming to _ArgumentTransformer. Checker
+    # option declarations depend only on the "regexp" key; the adapter alone
+    # may depend on re.compile and argparse's handled validation-error contract.
     "regexp": re.compile,
     "regexp_csv": _regexp_csv_transfomer,
     "regexp_paths_csv": _regexp_paths_csv_transfomer,
