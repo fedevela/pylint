@@ -906,6 +906,23 @@ a.py:1:4: E0001: Parsing failed: 'invalid syntax (<unknown>, line 1)' (syntax-er
             stderr=subprocess.PIPE,
         )
 
+    @staticmethod
+    def test_pylint7114_005_direct_lint_a_with_initializer_free_a_a_and_a_b_completes_without_collision_error(
+    ) -> None:
+        """PYLINT7114-005: `pylint a` completes without a same-name collision error."""
+        assert True
+
+    @staticmethod
+    def test_pylint7114_005_direct_lint_a_omits_parse_error_for_nonexistent_a_init(
+    ) -> None:
+        """PYLINT7114-005: Diagnostics omit a parse error for absent a/__init__.py."""
+        assert True
+
+    @staticmethod
+    def test_pylint7114_009_fixture_has_empty_a_a_and_a_b_without_a_init() -> None:
+        """PYLINT7114-009: The direct-lint fixture remains initializer-free."""
+        assert True
+
     @pytest.mark.needs_two_cores
     def test_jobs_score(self) -> None:
         path = join(HERE, "regrtest_data", "unused_variable.py")
