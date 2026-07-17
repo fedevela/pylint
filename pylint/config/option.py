@@ -21,6 +21,13 @@ def _csv_validator(_, name, value):
 
 # pylint: disable=unused-argument
 def _regexp_validator(_, name, value):
+    # PYLINT-006 PSEUDOCODE -- legacy unrelated regexp validation:
+    # INPUT: an existing compiled pattern or ordinary regular-expression text.
+    # IF the value is already compiled, RETURN the same value unchanged.
+    # OTHERWISE, COMPILE the complete text with the standard regexp processor.
+    # IF compilation succeeds, RETURN the compiled pattern.
+    # IF compilation fails, PROPAGATE the existing regexp error so the caller
+    #     preserves its established rejection and diagnostic behavior.
     if hasattr(value, "pattern"):
         return value
     return re.compile(value)
@@ -28,6 +35,11 @@ def _regexp_validator(_, name, value):
 
 # pylint: disable=unused-argument
 def _regexp_csv_validator(_, name, value):
+    # PYLINT-006 PSEUDOCODE -- legacy unrelated regexp-list validation:
+    # SPLIT the configured value with the existing CSV rules.
+    # FOR EACH item in order, APPLY the legacy regexp validation above.
+    # IF every item succeeds, RETURN the ordered compiled-pattern list.
+    # IF any item fails, STOP and PROPAGATE that existing regexp failure.
     return [_regexp_validator(_, name, val) for val in _csv_validator(_, name, value)]
 
 

@@ -113,6 +113,12 @@ def _py_version_transformer(value: str) -> tuple[int, ...]:
 
 def _regexp_transformer(value: str) -> Pattern[str]:
     """Compile a regular expression for argparse-managed configuration parsing."""
+    # PYLINT-006 PSEUDOCODE -- unrelated regular-expression compatibility:
+    # INPUT: regular-expression text assigned to any standard regexp option.
+    # TRY to compile the complete text with the existing standard processor.
+    # IF compilation succeeds, RETURN the compiled pattern without rewriting it.
+    # IF compilation fails, PRESERVE the existing controlled argparse diagnostic
+    #     handoff; do not accept the value or route it through Han-aware processing.
     # PYLINT-004 PSEUDOCODE -- standard naming-regex processing:
     # INPUT: the configured naming-regex text selected for this processor.
     # TRY to compile the text with the standard regular-expression processor.
@@ -136,6 +142,13 @@ def _regexp_with_han_transformer(value: str) -> Pattern[str]:
     without ``\p{Han}`` retain the standard-library regular-expression
     semantics used by every other naming option.
     """
+    # PYLINT-005 PSEUDOCODE -- supported non-Han naming-regex parsing:
+    # INPUT: configured function naming-regex text.
+    # IF the text contains no supported Han property escape,
+    #     HAND OFF the complete, unchanged text to the standard regexp transformer.
+    #     RETURN its compiled pattern on success.
+    #     PROPAGATE its existing controlled configuration diagnostic on failure.
+    #     DO NOT invoke the Han-aware processor or change accepted syntax.
     # PYLINT-004 PSEUDOCODE -- function naming-regex processor selection:
     # INPUT: the configured function naming-regex text.
     # IF the text does not qualify for the supported Han-aware processor,
@@ -178,6 +191,13 @@ def _regexp_paths_csv_transfomer(value: str) -> Sequence[Pattern[str]]:
     return patterns
 
 
+# PYLINT-006 PSEUDOCODE -- unrelated option compatibility:
+# INPUT: an option's existing type key and configured value.
+# SELECT the transformer already registered for that type key.
+# INVOKE that transformer with the value without Han-specific preprocessing.
+# IF transformation succeeds, STORE and expose the same transformed value.
+# IF transformation rejects the value, HAND OFF the same validation failure to
+#     argparse so its established diagnostic and rejection flow remain authoritative.
 _TYPE_TRANSFORMERS: dict[str, _ArgumentTransformer] = {
     "choice": str,
     "csv": _csv_transformer,

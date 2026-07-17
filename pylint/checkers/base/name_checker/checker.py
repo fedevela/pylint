@@ -545,6 +545,12 @@ class NameChecker(_BasicChecker):
             self.add_message("disallowed-name", node=node, args=name)
             return
 
+        # PYLINT-005 PSEUDOCODE -- supported non-Han naming-regex matching:
+        # INPUT: the name under review and its previously selected compiled rule.
+        # APPLY the complete rule to the name with the existing match operation.
+        # IF it matches, CONTINUE through the established successful/grouped path.
+        # IF it does not match and no existing exemption applies, HAND OFF to the
+        #     established invalid-name diagnostic path without changing its output.
         # PYLINT-002 / PYLINT-003: Apply the complete compiled naming rule;
         # mismatches continue through the normal invalid-name path below.
         regexp = self._name_regexps[node_type]
