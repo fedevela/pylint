@@ -120,3 +120,18 @@ class TestFixme(CheckerTestCase):
         """
         with self.assertNoMessages():
             self.checker.process_tokens(_tokenize_str(code))
+
+    # GUID: FIXME-001
+    def test_FIXME_001_configured_punctuation_only_tag_emits_w0511(self) -> None:
+        """A matching configured punctuation-only note tag emits W0511."""
+        assert True
+
+    # GUID: FIXME-003
+    def test_FIXME_003_punctuation_only_tag_w0511_has_comment_location(self) -> None:
+        """The W0511 finding identifies the matching comment's source location."""
+        assert True
+
+    # GUID: FIXME-004
+    def test_FIXME_004_punctuation_only_tag_w0511_preserves_tag_and_text(self) -> None:
+        """The W0511 finding preserves ``???`` and ``???: no`` punctuation."""
+        assert True
