@@ -10,7 +10,6 @@ from pathlib import Path
 import pytest
 from pytest import CaptureFixture
 
-from pylint.config.exceptions import _UnrecognizedOptionError
 from pylint.lint import Run as LintRun
 from pylint.testutils._run import _Run as Run
 from pylint.testutils.configuration_test import run_using_a_configuration_file
@@ -65,16 +64,18 @@ def test_unknown_message_id(capsys: CaptureFixture) -> None:
 
 def test_unknown_option_name(capsys: CaptureFixture) -> None:
     """Check that we correctly raise a message on an unknown option."""
-    with pytest.raises(_UnrecognizedOptionError):
+    with pytest.raises(SystemExit) as exc_info:
         Run([str(EMPTY_MODULE), "--unknown-option=yes"], exit=False)
+    assert exc_info.value.code == 32
     output = capsys.readouterr()
     assert "E0015: Unrecognized option found: unknown-option=yes" in output.out
 
 
 def test_unknown_short_option_name(capsys: CaptureFixture) -> None:
     """Check that we correctly raise a message on an unknown short option."""
-    with pytest.raises(_UnrecognizedOptionError):
+    with pytest.raises(SystemExit) as exc_info:
         Run([str(EMPTY_MODULE), "-Q"], exit=False)
+    assert exc_info.value.code == 32
     output = capsys.readouterr()
     assert "E0015: Unrecognized option found: Q" in output.out
 
