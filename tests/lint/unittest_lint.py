@@ -882,6 +882,7 @@ def test_by_module_statement_value(initialized_linter: PyLinter) -> None:
     ],
 )
 def test_recursive_ignore(ignore_parameter, ignore_parameter_value) -> None:
+    """GEV-009: Preserve existing recursive ignore regression behavior."""
     run = Run(
         [
             "--recursive",
@@ -924,13 +925,13 @@ def _create_gev_recursive_project(tmp_path: Path) -> None:
         "undefined_generated_name\n", encoding="utf-8"
     )
     (tmp_path / "pyproject.toml").write_text(
-        '[tool.pylint.MASTER]\nignore-paths = ["^src/gen/.*$"]\n',
+        '[tool.pylint.MASTER]\nignore-paths = ["^(?:[.]/)?src/gen/.*$"]\n',
         encoding="utf-8",
     )
 
 
 def _run_gev_recursive_lint(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, target: str = "src/"
 ) -> tuple[Run, str]:
     _create_gev_recursive_project(tmp_path)
     monkeypatch.chdir(tmp_path)
@@ -942,7 +943,7 @@ def _run_gev_recursive_lint(
             "--reports=n",
             "--disable=all",
             "--enable=undefined-variable",
-            "src/",
+            target,
         ],
         reporter=text.TextReporter(output),
         exit=False,
@@ -1050,49 +1051,14 @@ def test_gev_008_recursive_current_directory_excludes_matching_path_and_retains_
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """GEV-008: Exclude matching paths and retain non-matching paths for target `.`."""
-    # GEV-008 ARCHITECTURE
-    # Ownership stays in this lint integration module: _create_gev_recursive_project
-    # owns the isolated candidate/configuration fixture, while tmp_path and monkeypatch
-    # define the filesystem and current-working-directory boundaries.
-    # The implementation seam is the existing Run + TextReporter path used by
-    # _run_gev_recursive_lint; its target contract must be the literal `.` for this test.
-    # Evidence crosses that seam only through Run.linter analysis state and captured
-    # reporter output. Production discovery code must not depend on this test scaffold.
-    # GEV-008 LOGIC OBLIGATION
-    # GIVEN an isolated project containing one path that matches the configured
-    # ignore-paths expression and one Python path that does not match it:
-    #   - change the process context to the project root;
-    #   - invoke recursive lint discovery with the literal current-directory target `.`;
-    #   - capture both the analyzed-module state and rendered lint output.
-    # WHEN discovery classifies each candidate path:
-    #   - if the path matches ignore-paths, exclude it before analysis and emission;
-    #   - otherwise, hand it off to normal lint analysis.
-    # THEN fail if the matching path appears in analyzed modules or output.
-    # AND fail if the non-matching path is absent from analyzed modules or output.
-    # OTHERWISE complete with both exclusion and retained analysis demonstrated.
-    assert True
+    run, output = _run_gev_recursive_lint(tmp_path, monkeypatch, target=".")
 
-
-def test_gev_009_existing_recursive_lint_and_path_ignore_regressions_continue_to_pass(
-) -> None:
-    """GEV-009: Preserve existing recursive-lint and path-ignore regressions."""
-    # GEV-009 ARCHITECTURE
-    # Compatibility remains owned by test_recursive_ignore in this module and by the
-    # recursive/ignore-path cases in tests/test_self.py. This traceability locus must
-    # not aggregate or invoke those tests; normal pytest suite membership is the seam.
-    # Dependency direction therefore remains tests -> lint entry points, with no
-    # cross-test-module imports and no production dependency on regression fixtures.
-    # GEV-009 LOGIC OBLIGATION
-    # GIVEN the GEV-008 current-directory regression is part of the regression suite:
-    #   - retain the existing recursive-lint cases;
-    #   - retain the existing ignore, ignore-patterns, and ignore-paths cases;
-    #   - retain their original inputs and expected outcomes.
-    # WHEN the test runner hands each retained case to Pylint, record its outcome.
-    # FOR EACH outcome, transition the compatibility gate to FAILED on any failure.
-    # IF every retained case passes, transition the compatibility gate to PASSED.
-    # PROPAGATE setup, discovery, lint, or assertion errors as regression failures;
-    # do not reinterpret an error as evidence that compatibility was preserved.
-    assert True
+    assert all(not module.endswith("about") for module in run.linter.stats.by_module)
+    assert "about" not in output
+    assert any(
+        module.endswith("region_selection") for module in run.linter.stats.by_module
+    )
+    assert "undefined_region_name" in output
 
 
 def test_import_sibling_module_from_namespace(initialized_linter: PyLinter) -> None:
