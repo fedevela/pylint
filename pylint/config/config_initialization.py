@@ -72,6 +72,16 @@ def _config_initialization(
     # the configuration file
     parsed_args_list = linter._parse_command_line_configuration(args_list)
 
+    # Pseudocode contract: PYLINT-001, PYLINT-003
+    # INPUT: tokens left after parsing all recognized command-line options.
+    # FOR EACH remaining token:
+    #     IF token uses a long-option spelling, retain its identifying name.
+    #     ELSE IF token uses a short-option spelling, retain its identifying name.
+    # IF one or more unsupported option names were retained:
+    #     EMIT the existing E0015 diagnostic with the retained names.
+    #     SIGNAL unrecognized-option rejection to the invocation boundary.
+    # ELSE:
+    #     HAND OFF the unchanged positional targets to normal initialization.
     # Check if there are any options that we do not recognize
     unrecognized_options: list[str] = []
     for opt in parsed_args_list:

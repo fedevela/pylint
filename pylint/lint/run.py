@@ -132,6 +132,14 @@ group are mutually exclusive.",
         linter.disable("I")
         linter.enable("c-extension-no-member")
 
+        # Pseudocode contract: PYLINT-002, PYLINT-004, PYLINT-005
+        # TRY to initialize configuration and parse command-line options.
+        # IF initialization signals an unrecognized-option rejection:
+        #     PRESERVE the E0015 diagnostic already emitted at detection.
+        #     TERMINATE with a non-zero status without re-raising the signal.
+        #     DO NOT continue to lint targets or expose an internal traceback.
+        # ELSE:
+        #     RECEIVE the parsed targets and continue existing behavior unchanged.
         args = _config_initialization(
             linter, args, reporter, config_file=self._rcfile, verbose_mode=self.verbose
         )
