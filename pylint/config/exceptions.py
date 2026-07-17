@@ -12,7 +12,15 @@ class UnrecognizedArgumentAction(Exception):
 
 
 class _UnrecognizedOptionError(Exception):
-    """Raised if an ArgumentManager instance tries to parse an option that is unknown."""
+    """Private rejection signal for options unknown to an argument manager.
+
+    Architecture contract (PYLINT-001, PYLINT-002, PYLINT-003, PYLINT-004,
+    PYLINT-005): configuration parsing owns production of this signal and the
+    identifying diagnostic; the invocation boundary owns consuming the signal
+    and selecting non-zero, traceback-free termination. Recognized-option paths
+    do not produce the signal. The dependency points from those two boundaries
+    to this private configuration exception, not between the boundaries.
+    """
 
     def __init__(self, options: list[str], *args: object) -> None:
         self.options = options
