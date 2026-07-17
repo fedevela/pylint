@@ -84,9 +84,10 @@ class EncodingChecker(BaseChecker):
     __implements__ = (IRawChecker, ITokenChecker)
 
     # Architecture contract -- GUID: FIXME-001, FIXME-002, FIXME-003, FIXME-004,
-    # FIXME-005, FIXME-007. The shared CSV option boundary supplies distinct tags;
-    # ``open`` exclusively adapts them into this private matcher; ``process_tokens``
-    # owns matching comment tokens and translating one match into one W0511 payload.
+    # FIXME-005, FIXME-006, FIXME-007, FIXME-008. The shared CSV option boundary
+    # supplies distinct tags; ``open`` exclusively adapts them into this private
+    # matcher; ``process_tokens`` owns matching comment tokens and translating one
+    # match into one W0511 payload.
     _fixme_pattern: Pattern[str]
 
     # configuration section name
@@ -134,13 +135,15 @@ class EncodingChecker(BaseChecker):
 
         # Architecture ownership -- GUID: FIXME-005. This lifecycle seam alone
         # converts the configured tag sequence into the checker's private matcher.
-        # Pseudocode contract -- GUID: FIXME-005
+        # Pseudocode contract -- GUID: FIXME-005, FIXME-006, FIXME-008
         # INPUT: config.notes contains the tags produced by the established CSV option.
         # FOR EACH tag, escape it independently.
         # IF the tag contains a word character, retain its established word boundary.
         # ELSE delimit the punctuation-only tag at a note terminator.
         # JOIN the independently prepared tags as alternatives in one matcher.
+        # EXCLUDE every word or punctuation sequence absent from config.notes.
         # OUTPUT: word-character and punctuation-only tags remain independently matchable.
+        # PRESERVE rejection of partial words while accepting established tag placement.
         # Punctuation-only tags have no word boundary, so delimit them explicitly.
         # GUID: FIXME-001
         notes = "|".join(
@@ -182,6 +185,9 @@ class EncodingChecker(BaseChecker):
 
     def process_tokens(self, tokens):
         """Inspect the source to find fixme problems."""
+        # Pseudocode contract -- GUID: FIXME-006, FIXME-008
+        # INPUT: configured note tags and the source token stream.
+        # IF no tags are configured, return without emitting W0511.
         if not self.config.notes:
             return
         comments = (
@@ -216,14 +222,18 @@ class EncodingChecker(BaseChecker):
                     continue
 
             # Integration seam -- GUID: FIXME-001, FIXME-002, FIXME-003, FIXME-004,
-            # FIXME-005. Token handling remains the sole consumer of the matcher and
-            # the existing add_message path remains the sole W0511 output boundary.
+            # FIXME-005, FIXME-006, FIXME-008. Token handling remains the sole consumer
+            # of the matcher and the existing add_message path remains the sole W0511
+            # output boundary.
             match = self._fixme_pattern.search("#" + comment_text.lower())
-            # Pseudocode contract -- GUID: FIXME-002, FIXME-005
+            # Pseudocode contract -- GUID: FIXME-002, FIXME-005, FIXME-006, FIXME-008
             # FOR EACH comment token, search the mixed-tag matcher exactly once.
-            # IF no configured tag matches, emit no W0511 and continue.
+            # IF no configured tag matches, including punctuation alone or a partial
+            # word, emit no W0511 and continue to the next comment.
             # IF YES matches, preserve the established message text and source location.
             # IF ??? matches, preserve the same W0511 message path.
+            # FOR a match at any established placement or spacing, preserve the entire
+            # normalized comment whether a following message is present or absent.
             # EMIT exactly one W0511 for the matching comment, then advance to the next token.
             if match:
                 self.add_message(
