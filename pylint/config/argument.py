@@ -111,7 +111,12 @@ def _regexp_transformer(value: str) -> Pattern[str]:
     """Compile a regular expression for argparse-managed configuration parsing."""
     try:
         return re.compile(value)
-    except (re.error, OverflowError) as exc:
+    except re.error as exc:
+        raise argparse.ArgumentTypeError(
+            f"Error in provided regular expression: {value} beginning at index "
+            f"{exc.pos}: {exc.msg}"
+        ) from None
+    except OverflowError as exc:
         raise argparse.ArgumentTypeError(f"Invalid regular expression: {exc}") from None
 
 
