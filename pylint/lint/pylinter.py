@@ -770,7 +770,17 @@ class PyLinter(
             # Discovery/lint integration seam: preserve the descriptor's correlated
             # real path and module identity in one FileItem. Resolution remains owned
             # by expand_modules (PYLINT7114-001, PYLINT7114-002, PYLINT7114-003,
-            # PYLINT7114-007).
+            # PYLINT7114-004, PYLINT7114-006, PYLINT7114-007).
+            # Pseudocode: combined lint import-resolution handoff.
+            # [PYLINT7114-006] GIVEN inputs ordered as `r`, then namespace `a`,
+            # expand both within the invocation's import search context. Preserve
+            # the discovered (`a/b.py`, `a.b`) descriptor while constructing every
+            # FileItem, even when (`a/a.py`, `a.a`) is also present. WHEN checking
+            # `r.py` and resolving `from a import b`, expose the preserved `a.b`
+            # child through namespace `a`. IF that child resolves, continue without
+            # emitting E0611. IF namespace or child resolution genuinely fails,
+            # retain the existing import-resolution diagnostic path; do not treat
+            # the mere presence of `a/a.py` as evidence that `b` is absent.
             name, filepath, is_arg = descr["name"], descr["path"], descr["isarg"]
             if self.should_analyze_file(name, filepath, is_argument=is_arg):
                 yield FileItem(name, filepath, descr["basename"])

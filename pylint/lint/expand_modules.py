@@ -63,7 +63,8 @@ def _is_ignored_file(
 
 # Discovery owns namespace classification, real-path selection, and identity
 # construction. It exports those decisions only through paired descriptor fields
-# (PYLINT7114-001, PYLINT7114-002, PYLINT7114-003, PYLINT7114-007).
+# (PYLINT7114-001, PYLINT7114-002, PYLINT7114-003, PYLINT7114-004,
+# PYLINT7114-006, PYLINT7114-007).
 def expand_modules(
     files_or_modules: Sequence[str],
     ignore_list: list[str],
@@ -141,6 +142,17 @@ def expand_modules(
             and os.path.basename(filepath) == "__init__.py"
         )
         if has_init or is_namespace or is_directory:
+            # Pseudocode: sibling-preserving namespace expansion.
+            # [PYLINT7114-004] GIVEN implicit namespace directory `a` containing
+            # both `a/a.py` and `a/b.py`, enumerate every eligible child path
+            # independently. FOR EACH child, derive its module path from the
+            # namespace search root plus that child's relative path. IF the child
+            # is `a/b.py`, emit the paired descriptor (`a/b.py`, `a.b`) even when
+            # the earlier or later sibling is the same-named `a/a.py`; NEVER use
+            # one child's identity to replace, terminate, or filter another child.
+            # IF a child is ignored, skip only that child. IF identity derivation
+            # fails, follow the existing resolution failure path without collapsing
+            # `a.b` into either `a` or `a.a`.
             for subfilepath in modutils.get_module_files(
                 os.path.dirname(filepath), ignore_list, list_all=is_namespace
             ):
