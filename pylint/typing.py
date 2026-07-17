@@ -51,7 +51,14 @@ class FileItem(NamedTuple):
 class ModuleDescriptionDict(TypedDict):
     """Represents data about a checked module."""
 
+    # Discovery-to-lint contract: expand_modules owns resolution; consumers keep
+    # path and name paired through AST construction and diagnostic reporting
+    # (PYLINT7114-001, PYLINT7114-002, PYLINT7114-003, PYLINT7114-007).
+    # A real source path; never a synthesized namespace initializer
+    # (PYLINT7114-001, PYLINT7114-003, PYLINT7114-007).
     path: str
+    # The identity belonging to ``path``; namespace and same-named child identities
+    # remain distinct (PYLINT7114-002, PYLINT7114-003, PYLINT7114-007).
     name: str
     isarg: bool
     basepath: str

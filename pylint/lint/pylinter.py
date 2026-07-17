@@ -767,6 +767,10 @@ class PyLinter(
         The returned generator yield one item for each Python module that should be linted.
         """
         for descr in self._expand_files(files_or_modules):
+            # Discovery/lint integration seam: preserve the descriptor's correlated
+            # real path and module identity in one FileItem. Resolution remains owned
+            # by expand_modules (PYLINT7114-001, PYLINT7114-002, PYLINT7114-003,
+            # PYLINT7114-007).
             name, filepath, is_arg = descr["name"], descr["path"], descr["isarg"]
             if self.should_analyze_file(name, filepath, is_argument=is_arg):
                 yield FileItem(name, filepath, descr["basename"])
